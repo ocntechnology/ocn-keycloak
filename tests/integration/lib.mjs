@@ -1,9 +1,21 @@
 // Small headless browser for driving Keycloak's login pages over HTTP, plus Mailpit and admin helpers.
+import './localhost-dns.cjs'; // *.localhost (auth.civicos.localhost, sso.kingston.localhost) for Node
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { Admin } from '../../scripts/realm/lib.mjs';
 
+import { CONFIG, readJson } from '../../scripts/realm/lib.mjs';
+import { join } from 'node:path';
+
 export const KC = process.env.KC_SERVER || 'http://localhost:8180';
+// Browser-facing Keycloak hosts (realm ocn's frontendUrl and the fake council IdP's own host):
+// a redirect to any of them stays "inside Keycloak". Node reaches *.localhost through
+// ./localhost-dns.cjs (a copy of ~/Repositories/civicos-local/lib/localhost-dns.cjs).
+const LOCAL_ENV = readJson(join(CONFIG, 'env', 'local.json'));
+const LOCAL_SEED = readJson(join(CONFIG, 'env', 'local-seed.json'));
+export const KC_PUBLIC = (LOCAL_ENV.frontendUrl || KC).replace(/\/$/, '');
+export const SIM_PUBLIC = (LOCAL_SEED.councilSim.frontendUrl || KC).replace(/\/$/, '');
+const KEYCLOAK_ORIGINS = [new URL(KC).origin, new URL(KC_PUBLIC).origin, new URL(SIM_PUBLIC).origin];
 export const MAILPIT = process.env.MAILPIT_URL || 'http://localhost:8025';
 export const PASSWORD = 'CivicOS-Local-2026!';
 export const admin = Admin.fromEnv('ocn');
@@ -49,7 +61,7 @@ export class Browser {
       this.store(res);
       if (res.status >= 300 && res.status < 400) {
         const loc = new URL(res.headers.get('location'), current).toString();
-        if (!loc.startsWith(KC)) return { redirect: loc, status: res.status };
+        if (!KEYCLOAK_ORIGINS.includes(new URL(loc).origin)) return { redirect: loc, status: res.status };
         current = loc;
         opts = {};
         continue;
@@ -84,10 +96,10 @@ export function pkce() {
   return { verifier, challenge };
 }
 
-export const PORTAL = { clientId: 'civicos-portal', redirectUri: 'http://localhost:3115/api/auth/callback/keycloak' };
+export const PORTAL = { clientId: 'civicos-portal', redirectUri: `${LOCAL_ENV.portalUrl.replace(/\/$/, '')}/api/auth/callback/keycloak` };
 
 export function authUrl({ clientId = PORTAL.clientId, redirectUri = PORTAL.redirectUri, challenge, extra = {} }) {
-  const u = new URL(`${KC}/realms/ocn/protocol/openid-connect/auth`);
+  const u = new URL(`${KC_PUBLIC}/realms/ocn/protocol/openid-connect/auth`);
   const p = { client_id: clientId, redirect_uri: redirectUri, response_type: 'code', scope: 'openid email profile', state: randomBytes(8).toString('hex'), nonce: randomBytes(8).toString('hex'), code_challenge: challenge, code_challenge_method: 'S256', ...extra };
   for (const [k, v] of Object.entries(p)) u.searchParams.set(k, v);
   return u.toString();
