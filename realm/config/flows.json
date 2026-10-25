@@ -1,29 +1,82 @@
 {
-  "$comment": "Authentication flows owned by this repo. apply.mjs rebuilds a flow when its executions differ from this list (top-level flows are recreated under a temporary alias and swapped, so the realm never points at a half-built flow).",
+  "$comment": "Authentication flows owned by this repo. apply.mjs rebuilds a flow when its executions (or an execution's config) differ from this list (top-level flows are recreated under a temporary alias and swapped, so the realm never points at a half-built flow).",
   "flows": [
     {
       "alias": "civicos-browser",
       "description": "CivicOS email-first sign-in: identify, apply the organisation's policy, password, email code or SSO, second factor, 30-day mailbox check, assurance level.",
       "executions": [
-        { "authenticator": "civicos-sign-in", "requirement": "REQUIRED" }
+        {
+          "authenticator": "civicos-sign-in",
+          "requirement": "REQUIRED"
+        }
       ]
     },
     {
       "alias": "civicos-first-broker-login",
       "description": "First council SSO sign-in: guard the domain, then create the account or link it to the existing one with the same verified email.",
       "executions": [
-        { "authenticator": "civicos-broker-guard", "requirement": "REQUIRED" },
-        { "subflow": "civicos-first-broker-login account", "requirement": "REQUIRED", "executions": [
-          { "authenticator": "idp-create-user-if-unique", "requirement": "ALTERNATIVE" },
-          { "authenticator": "idp-auto-link", "requirement": "ALTERNATIVE" }
-        ] }
+        {
+          "authenticator": "civicos-broker-guard",
+          "requirement": "REQUIRED"
+        },
+        {
+          "subflow": "civicos-first-broker-login account",
+          "requirement": "REQUIRED",
+          "executions": [
+            {
+              "authenticator": "idp-create-user-if-unique",
+              "requirement": "ALTERNATIVE"
+            },
+            {
+              "authenticator": "idp-auto-link",
+              "requirement": "ALTERNATIVE"
+            }
+          ]
+        }
       ]
     },
     {
       "alias": "civicos-post-broker-login",
       "description": "Every council SSO sign-in: record the method, organisation membership and assurance level 2.",
       "executions": [
-        { "authenticator": "civicos-sso-complete", "requirement": "REQUIRED" }
+        {
+          "authenticator": "civicos-sso-complete",
+          "requirement": "REQUIRED"
+        }
+      ]
+    },
+    {
+      "alias": "civicos-reset-credentials",
+      "description": "CivicOS forgotten password: email and sign-in routing (no reset for SSO-required organisations, personal or unknown domains), emailed link, new password, then back to the sign-in page (no sign-in from a reset, no authenticator removal).",
+      "executions": [
+        {
+          "authenticator": "civicos-reset-identify",
+          "requirement": "REQUIRED"
+        },
+        {
+          "authenticator": "reset-credential-email",
+          "requirement": "REQUIRED",
+          "config": {
+            "alias": "civicos-reset-force-login",
+            "config": {
+              "force-login": "true"
+            }
+          }
+        },
+        {
+          "authenticator": "reset-password",
+          "requirement": "REQUIRED"
+        }
+      ]
+    },
+    {
+      "alias": "civicos-direct-grant-refused",
+      "description": "Bound as the realm's direct grant flow: password grants never give tokens in realm ocn, whatever a client's settings.",
+      "executions": [
+        {
+          "authenticator": "civicos-refuse-password-grant",
+          "requirement": "REQUIRED"
+        }
       ]
     }
   ]

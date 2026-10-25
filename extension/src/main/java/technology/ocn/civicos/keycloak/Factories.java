@@ -34,6 +34,38 @@ public final class Factories {
         @Override public Authenticator create(KeycloakSession session) { return INSTANCE; }
     }
 
+    public static class Reset extends Base {
+        public static final String ID = "civicos-reset-identify";
+        private static final CivicosResetAuthenticator INSTANCE = new CivicosResetAuthenticator();
+        @Override public String getId() { return ID; }
+        @Override public String getDisplayType() { return "CivicOS reset: email and policy"; }
+        @Override public String getHelpText() { return "Forgotten password: asks for the email and applies the sign-in routing (no reset for SSO-required organisations, personal or unknown domains); checks again when the emailed link is used."; }
+        @Override public Authenticator create(KeycloakSession session) { return INSTANCE; }
+    }
+
+    /** Bound as the realm's direct grant flow: a password grant always gets an OAuth error, never tokens. */
+    public static class RefusePasswordGrant extends Base {
+        public static final String ID = "civicos-refuse-password-grant";
+        private static final Authenticator INSTANCE = new Authenticator() {
+            @Override public void authenticate(org.keycloak.authentication.AuthenticationFlowContext ctx) {
+                ctx.getEvent().detail("reason", "password_grant_not_allowed");
+                ctx.failure(org.keycloak.authentication.AuthenticationFlowError.ACCESS_DENIED,
+                    jakarta.ws.rs.core.Response.status(400).type(jakarta.ws.rs.core.MediaType.APPLICATION_JSON_TYPE)
+                        .entity(java.util.Map.of("error", "unauthorized_client", "error_description", "CivicOS does not allow password grants. Sign in through the browser."))
+                        .build());
+            }
+            @Override public void action(org.keycloak.authentication.AuthenticationFlowContext ctx) { authenticate(ctx); }
+            @Override public boolean requiresUser() { return false; }
+            @Override public boolean configuredFor(KeycloakSession session, org.keycloak.models.RealmModel realm, org.keycloak.models.UserModel user) { return true; }
+            @Override public void setRequiredActions(KeycloakSession session, org.keycloak.models.RealmModel realm, org.keycloak.models.UserModel user) { }
+            @Override public void close() { }
+        };
+        @Override public String getId() { return ID; }
+        @Override public String getDisplayType() { return "CivicOS: refuse password grants"; }
+        @Override public String getHelpText() { return "Always fails with unauthorized_client. Bound as the direct grant flow so no client can get tokens with a password."; }
+        @Override public Authenticator create(KeycloakSession session) { return INSTANCE; }
+    }
+
     public static class BrokerGuard extends Base {
         public static final String ID = "civicos-broker-guard";
         private static final BrokerGuardAuthenticator INSTANCE = new BrokerGuardAuthenticator();

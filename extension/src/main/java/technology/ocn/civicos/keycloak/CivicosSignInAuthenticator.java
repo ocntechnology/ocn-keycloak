@@ -98,14 +98,17 @@ public class CivicosSignInAuthenticator implements Authenticator {
         // OCN staff sessions are always level 2: an older level 1 staff session is stepped up.
         if (isStaff(realm, user) && !"sso".equals(method)) requested = Math.max(requested, Assurance.STRONG);
 
-        // Policy changed to SSO only, or an SSO session is past 12 hours: back through the council's sign-in.
+        // Policy changed to SSO only, or an SSO session is past its limit: back through the council's sign-in.
         boolean ssoNow = org.policy() == SignInPolicy.SSO_REQUIRED && !"sso".equals(method);
-        boolean ssoStale = "sso".equals(method) && Time.currentTime() - us.getStarted() > Assurance.SSO_SESSION_SECONDS;
+        boolean ssoStale = "sso".equals(method) && Time.currentTime() - us.getStarted() > RealmSettings.ssoSessionMaxSeconds(realm);
         if ((ssoNow || ssoStale) && org.ssoConnected()) {
             redirectToIdp(ctx, org.idpAliases().get(0), email);
             return true;
         }
         if (ssoNow) return false; // SSO required but not connected: show the email screen, which explains.
+        // Password and code sessions: the mailbox check is past its limit, or the email is not verified: sign in again.
+        if (!"sso".equals(method) && (!user.isEmailVerified()
+                || MailboxCheck.due(user.getFirstAttribute(MailboxCheck.ATTRIBUTE), Instant.now(), RealmSettings.mailboxMaxAgeSeconds(realm)))) return false;
 
         ctx.setUser(user);
         if (requested > prev) {
@@ -246,8 +249,16 @@ public class CivicosSignInAuthenticator implements Authenticator {
         EmailCode.Notes notes = notes(as);
         long now = Time.currentTime();
         as.setAuthNote(N_STAGE, mailboxCheck ? "mailbox" : "code");
-        if (EmailCode.hasCode(notes) && !EmailCode.canResend(notes, now)) {
+        // The 30-second wait holds even after a code was voided by wrong guesses.
+        if (!EmailCode.canResend(notes, now)) {
             ctx.challenge(codeForm(ctx, mailboxCheck, "civicosCodeWait", null));
+            return;
+        }
+        CodeLimits.Send allowed = CodeLimits.trySend(CodeLimits.keycloak(ctx.getSession()), RealmSettings.codeLimits(ctx.getRealm()), ctx.getRealm().getId(), email, now);
+        if (allowed != CodeLimits.Send.OK) {
+            EmailCode.clear(notes);
+            ctx.getEvent().detail("reason", allowed == CodeLimits.Send.LOCKED ? "code_address_locked" : "code_limit").error(Errors.ACCESS_DENIED);
+            ctx.challenge(codeForm(ctx, mailboxCheck, null, allowed == CodeLimits.Send.LOCKED ? "civicosCodeLocked" : "civicosTooManyCodes"));
             return;
         }
         String code = EmailCode.issue(notes, now);
@@ -281,20 +292,31 @@ public class CivicosSignInAuthenticator implements Authenticator {
                 return;
             }
         }
-        EmailCode.Result result = EmailCode.verify(notes(as), form.getFirst("code"), Time.currentTime());
-        switch (result) {
-            case OK -> { }
-            case WRONG -> {
-                if (user != null) ctx.setUser(user);
-                ctx.getEvent().user(user).error(Errors.INVALID_USER_CREDENTIALS);
-                ctx.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, codeForm(ctx, mailboxCheck, null, "civicosWrongCode"));
-                if (user != null) ctx.clearUser();
-                return;
-            }
-            case EXPIRED -> { ctx.challenge(codeForm(ctx, mailboxCheck, null, "civicosCodeExpired")); return; }
-            case TOO_MANY_ATTEMPTS -> { ctx.challenge(codeForm(ctx, mailboxCheck, null, "civicosCodeTooManyAttempts")); return; }
-            case NO_CODE -> { ctx.challenge(codeForm(ctx, mailboxCheck, null, "civicosCodeExpired")); return; }
+        CodeLimits.Store limits = CodeLimits.keycloak(session);
+        long now = Time.currentTime();
+        if (CodeLimits.locked(limits, realm.getId(), email, now)) {
+            EmailCode.clear(notes(as));
+            ctx.getEvent().user(user).detail("reason", "code_address_locked").error(Errors.ACCESS_DENIED);
+            ctx.challenge(codeForm(ctx, mailboxCheck, null, "civicosCodeLocked"));
+            return;
         }
+        EmailCode.Result result = EmailCode.verify(notes(as), form.getFirst("code"), now);
+        if (result == EmailCode.Result.WRONG || result == EmailCode.Result.TOO_MANY_ATTEMPTS) {
+            // Counted per address, account or not; a new code never resets the count.
+            boolean lockedNow = CodeLimits.wrong(limits, RealmSettings.codeLimits(realm), realm.getId(), email, now);
+            if (user != null) ctx.setUser(user);
+            ctx.getEvent().user(user).error(Errors.INVALID_USER_CREDENTIALS);
+            String msg = lockedNow ? "civicosCodeLocked" : result == EmailCode.Result.WRONG ? "civicosWrongCode" : "civicosCodeTooManyAttempts";
+            if (lockedNow) EmailCode.clear(notes(as));
+            ctx.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, codeForm(ctx, mailboxCheck, null, msg));
+            if (user != null) ctx.clearUser();
+            return;
+        }
+        switch (result) {
+            case EXPIRED, NO_CODE -> { ctx.challenge(codeForm(ctx, mailboxCheck, null, "civicosCodeExpired")); return; }
+            default -> { }
+        }
+        CodeLimits.succeeded(limits, realm.getId(), email);
         if (user == null) {
             // First sign-in at a registered organisation: create the account now the mailbox is proved.
             OrgPolicy org = Orgs.policyFor(session, EmailDomains.domainOf(email));
@@ -321,8 +343,10 @@ public class CivicosSignInAuthenticator implements Authenticator {
     void afterPrimary(AuthenticationFlowContext ctx, UserModel user) {
         AuthenticationSessionModel as = ctx.getAuthenticationSession();
         String method = as.getAuthNote(N_METHOD);
+        // A password alone never signs in an account whose email is not verified (for example one an
+        // administrator changed): the person proves the mailbox with a code first.
         if ("password".equals(method) && !"mailbox".equals(as.getAuthNote(N_STAGE))
-                && MailboxCheck.due(user.getFirstAttribute(MailboxCheck.ATTRIBUTE), Instant.now())) {
+                && (!user.isEmailVerified() || MailboxCheck.due(user.getFirstAttribute(MailboxCheck.ATTRIBUTE), Instant.now(), RealmSettings.mailboxMaxAgeSeconds(ctx.getRealm())))) {
             sendCodeAndShow(ctx, true, null);
             return;
         }
@@ -389,8 +413,10 @@ public class CivicosSignInAuthenticator implements Authenticator {
         as.setUserSessionNote(US_LEVEL, Integer.toString(level));
         as.setUserSessionNote(US_METHOD, method);
         user.setSingleAttribute(A_LAST_METHOD, method);
-        Orgs.ensureMember(ctx.getSession(), user, as.getAuthNote(N_ORG));
+        // Organisation membership comes from the email domain, so only for a verified email.
+        if (user.isEmailVerified()) Orgs.ensureMember(ctx.getSession(), user, as.getAuthNote(N_ORG));
         ctx.getEvent().detail("civicos_method", method).detail("civicos_level", Integer.toString(level));
+        if (isStaff(ctx.getRealm(), user)) ctx.getEvent().detail("civicos_staff", "true");
         ctx.setUser(user);
         clearNotes(as);
         ctx.success();
@@ -440,7 +466,7 @@ public class CivicosSignInAuthenticator implements Authenticator {
     Response chooseForm(AuthenticationFlowContext ctx, String idpAlias, boolean offerPassword, String error) {
         LoginFormsProvider f = base(ctx);
         IdentityProviderModel idp = idpAlias == null ? null : ctx.getSession().identityProviders().getByAlias(idpAlias);
-        f.setAttribute("civicosSsoName", idp == null ? null : Optional.ofNullable(idp.getDisplayName()).orElse(idp.getAlias()));
+        f.setAttribute("civicosSsoName", idp == null ? null : ssoName(Optional.ofNullable(idp.getDisplayName()).orElse(idp.getAlias())));
         f.setAttribute("civicosOfferPassword", offerPassword);
         if (error != null) f.setError(error);
         return f.createForm(F_CHOOSE);
@@ -471,6 +497,11 @@ public class CivicosSignInAuthenticator implements Authenticator {
     }
 
     // Helpers -------------------------------------------------------------------------------------
+
+    /** "Kingston Council SSO" becomes "Kingston Council": the button reads "Sign in with your Kingston Council account". */
+    static String ssoName(String displayName) {
+        return displayName.replaceFirst("(?i)\\s*\\b(SSO|single sign-on)\\s*$", "").trim();
+    }
 
     static EmailCode.Notes notes(AuthenticationSessionModel as) {
         return new EmailCode.Notes() {

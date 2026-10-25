@@ -16,7 +16,8 @@ const diffs = [];
 const add = (area, text) => diffs.push({ area, text });
 
 const SETTINGS_IGNORE = new Set(['smtpServer', 'userProfileAttributes']);
-const BUILT_IN_CLIENTS = new Set(['account', 'account-console', 'admin-cli', 'broker', 'realm-management', 'security-admin-console']);
+// Keycloak's own clients, apart from admin-cli: it is public, so it must not allow password grants either.
+const BUILT_IN_CLIENTS = new Set(['account', 'account-console', 'broker', 'realm-management', 'security-admin-console']);
 
 async function main() {
   const live = await kc.get('');
@@ -48,7 +49,8 @@ async function main() {
   for (const c of desired.clients) {
     const l = await kc.client(c.clientId);
     if (!l) { add('clients', `${c.clientId} missing`); continue; }
-    const { defaultClientScopes, optionalClientScopes, serviceAccountRealmRoles, serviceAccountClientRoles, ...rep } = c;
+    const { defaultClientScopes, optionalClientScopes, serviceAccountRealmRoles, serviceAccountClientRoles, builtIn, ...rep } = c;
+    void builtIn;
     for (const d of diffObject(c.clientId, rep, l)) add('clients', d);
     if (defaultClientScopes) {
       const names = (await kc.get(`/clients/${l.id}/default-client-scopes`)).map((s) => s.name);
@@ -70,8 +72,21 @@ async function main() {
     const rows = await kc.flowExecutions(f.alias).catch(() => null);
     if (!rows) { add('flows', `${f.alias} missing`); continue; }
     const a = JSON.stringify(desiredFlowRows(f.executions));
-    const b = JSON.stringify(liveFlowRows(rows));
+    const b = JSON.stringify(await liveFlowRows(rows, kc));
     if (a !== b) add('flows', `${f.alias}: repo ${a} live ${b}`);
+  }
+
+  // Flow bindings: the realm must use these flows (also checked through settings, named here for clarity).
+  for (const k of ['browserFlow', 'firstBrokerLoginFlow', 'resetCredentialsFlow', 'directGrantFlow']) {
+    if (desired.settings[k] && live[k] !== desired.settings[k]) add('flows', `${k} is ${live[k]}, repo ${desired.settings[k]}`);
+  }
+
+  if (desired.clientPolicies) {
+    const strip = (x) => JSON.parse(JSON.stringify(x, (k, v) => (k.startsWith('$') ? undefined : v)));
+    const lp = (await kc.get('/client-policies/profiles')).profiles || [];
+    const lpol = (await kc.get('/client-policies/policies')).policies || [];
+    if (JSON.stringify(lp) !== JSON.stringify(strip(desired.clientPolicies.profiles))) add('client policies', `profiles: repo ${JSON.stringify(strip(desired.clientPolicies.profiles))} live ${JSON.stringify(lp)}`);
+    if (JSON.stringify(lpol) !== JSON.stringify(strip(desired.clientPolicies.policies))) add('client policies', `policies: repo ${JSON.stringify(strip(desired.clientPolicies.policies))} live ${JSON.stringify(lpol)}`);
   }
 
   if (args.json) console.log(JSON.stringify({ realm: args.realm, server: kc.server, differences: diffs }, null, 2));

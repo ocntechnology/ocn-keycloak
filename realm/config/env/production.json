@@ -22,5 +22,6 @@
   "groupsBackchannelUrl": "https://groups.ocn.technology",
   "discussBackchannelUrl": "https://discuss.ocn.technology",
   "committeeBackchannelUrl": "https://committees.ocn.technology",
+  "directoryBackchannelUrl": "https://directory.ocn.technology",
   "sslRequired": "external"
 }

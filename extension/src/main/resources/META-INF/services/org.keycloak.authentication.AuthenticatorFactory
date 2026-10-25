@@ -1,3 +1,5 @@
 technology.ocn.civicos.keycloak.Factories$SignIn
 technology.ocn.civicos.keycloak.Factories$BrokerGuard
 technology.ocn.civicos.keycloak.Factories$SsoComplete
+technology.ocn.civicos.keycloak.Factories$Reset
+technology.ocn.civicos.keycloak.Factories$RefusePasswordGrant

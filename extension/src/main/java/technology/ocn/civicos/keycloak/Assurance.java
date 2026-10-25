@@ -4,8 +4,6 @@ package technology.ocn.civicos.keycloak;
 public final class Assurance {
     public static final int VERIFIED_EMAIL = 1;
     public static final int STRONG = 2;
-    /** Council SSO sessions go back through the council's sign-in after this long. */
-    public static final long SSO_SESSION_SECONDS = 12 * 3600;
 
     private Assurance() {}
 

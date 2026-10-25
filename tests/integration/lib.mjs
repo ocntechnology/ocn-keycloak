@@ -202,3 +202,96 @@ export function totp(rawSecret, t = Date.now()) {
   const n = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
   return String(n % 1_000_000).padStart(6, '0');
 }
+
+// Sign-in, refresh, realm and limit helpers ---------------------------------------------------
+
+/** Password sign-in through the CivicOS browser flow for the portal client; returns the tokens. */
+export async function signIn(email, { password = PASSWORD, browser = new Browser(), extra = {} } = {}) {
+  const s = await start(extra, browser);
+  await browser.submit('civicos-email-form', { email });
+  if (browser.template() === 'civicos-choose.ftl') await browser.submit('civicos-choose-form', { method: 'password' });
+  const r = await browser.submit('civicos-password-form', { password });
+  if (!r.redirect) throw new Error(`sign-in for ${email} stopped at ${browser.template()}: ${browser.text().slice(0, 200)}`);
+  return exchange(r.redirect, s.verifier);
+}
+
+/** refresh_token grant from a product client, as products do every 5 minutes. */
+export async function refresh(refreshToken, clientId = PORTAL.clientId) {
+  const res = await fetch(`${KC}/realms/ocn/protocol/openid-connect/token`, {
+    method: 'POST',
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret(clientId) }),
+  });
+  return { status: res.status, json: await res.json() };
+}
+
+/** Set realm attributes; returns the previous values so a test can put them back. */
+export async function setRealmAttributes(attrs) {
+  const realm = await admin.get('');
+  const before = {};
+  for (const k of Object.keys(attrs)) before[k] = realm.attributes?.[k] ?? null;
+  const next = { ...(realm.attributes || {}) };
+  for (const [k, v] of Object.entries(attrs)) next[k] = v === null ? '' : String(v);
+  await admin.put('', { ...realm, attributes: next });
+  return before;
+}
+
+/** A realm-management token for realm ocn (the registry sync service account). */
+export async function serviceToken() {
+  const res = await fetch(`${KC}/realms/ocn/protocol/openid-connect/token`, { method: 'POST', body: new URLSearchParams({ grant_type: 'client_credentials', client_id: 'civicos-registry-sync', client_secret: clientSecret('civicos-registry-sync') }) });
+  const json = await res.json();
+  if (!res.ok) throw new Error(`service token: ${JSON.stringify(json)}`);
+  return json.access_token;
+}
+
+/** Clear the per-address email-code counters and lock (the support endpoint). */
+export async function resetCodeLimits(email) {
+  const res = await fetch(`${KC}/realms/ocn/civicos-admin/code-limits/reset`, { method: 'POST', headers: { authorization: `Bearer ${await serviceToken()}`, 'content-type': 'application/json' }, body: JSON.stringify({ email }) });
+  return res.status;
+}
+
+export async function mailCount(to) {
+  const res = await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}`);
+  return (await res.json()).messages_count || 0;
+}
+
+/** The newest email to an address, optionally only one that arrived after a time. */
+export async function latestMail(to, { after = 0, timeoutMs = 10000 } = {}) {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    const res = await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}&limit=1`);
+    const m = (await res.json()).messages?.[0];
+    if (m && Date.parse(m.Created) >= after) return (await fetch(`${MAILPIT}/api/v1/message/${m.ID}`)).json();
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return null;
+}
+
+export async function ensureOrg(alias, domain, attributes = {}) {
+  let o = await org(alias);
+  const attrs = Object.fromEntries(Object.entries({ kind: 'council', customer: 'false', signInPolicy: 'open', requireSecondFactor: 'false', ...attributes }).map(([k, v]) => [k, [String(v)]]));
+  if (!o) await admin.post('/organizations', { name: `Integration ${alias}`, alias, enabled: true, domains: [{ name: domain, verified: true }], attributes: attrs });
+  else await admin.put(`/organizations/${o.id}`, { ...o, attributes: attrs });
+  return org(alias);
+}
+
+export async function deleteOrg(alias) {
+  const o = await org(alias);
+  if (o) await admin.del(`/organizations/${o.id}`);
+}
+
+/** Give a user an authenticator app with a known raw secret (as scripts/local/seed.mjs does for staff). */
+export async function addTotp(userId, secret, label = 'Integration phone') {
+  await admin.put(`/users/${userId}`, {
+    credentials: [{ type: 'otp', userLabel: label, secretData: JSON.stringify({ value: secret }), credentialData: JSON.stringify({ subType: 'totp', digits: 6, counter: 0, period: 30, algorithm: 'HmacSHA1' }) }],
+  });
+}
+
+/** A TOTP code for a secret that is not the one used in this 30-second window yet. */
+export async function freshTotp(secret, used = new Set()) {
+  for (;;) {
+    const left = 30_000 - (Date.now() % 30_000);
+    const code = totp(secret);
+    if (left > 4_000 && !used.has(code)) { used.add(code); return code; }
+    await new Promise((r) => setTimeout(r, left + 250));
+  }
+}

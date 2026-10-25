@@ -20,6 +20,7 @@
   "groupsBackchannelUrl": "http://127.0.0.1:3130",
   "discussBackchannelUrl": "http://127.0.0.1:3140",
   "committeeBackchannelUrl": "http://localhost:3001",
+  "directoryBackchannelUrl": "http://127.0.0.1:3100",
   "$comment": "Local: every product on its own *.civicos.localhost host (same site, like *.ocn.technology in production; see ~/Repositories/civicos-local). Back-channel calls from Keycloak use 127.0.0.1 because Java cannot resolve *.localhost.",
   "sslRequired": "none"
 }

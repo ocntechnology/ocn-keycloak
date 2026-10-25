@@ -3,7 +3,7 @@
 // Keycloak sends it by itself when an account is deleted (event listener civicos-erasure); use
 // this when a product was down then (Keycloak's log says "CivicOS erasure FAILED").
 //
-//   node scripts/erasure/resend.mjs --sub <keycloak user id> [--client civicos-discuss] [--realm ocn]
+//   node scripts/erasure/resend.mjs --sub <keycloak user id> [--client civicos-discuss] [--email person@council.gov.uk] [--realm ocn]
 //
 // Needs a service account in the realm with realm-management manage-users: KC_ADMIN_CLIENT_ID and
 // KC_ADMIN_CLIENT_SECRET (production), or locally the registry sync account from clients.env.
@@ -23,7 +23,7 @@ const token = await kc.auth();
 const res = await fetch(`${kc.server}/realms/${realm}/civicos-erasure/resend`, {
   method: 'POST',
   headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-  body: JSON.stringify({ sub: args.sub, ...(args.client ? { clientId: args.client } : {}) }),
+  body: JSON.stringify({ sub: args.sub, ...(args.client ? { clientId: args.client } : {}), ...(args.email ? { email: args.email } : {}) }),
 });
 console.log(res.status, await res.text());
 process.exit(res.ok ? 0 : 1);

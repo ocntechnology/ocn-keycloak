@@ -17,10 +17,15 @@ public final class MailboxCheck {
     private MailboxCheck() {}
 
     public static boolean due(String lastVerified, Instant now) {
+        return due(lastVerified, now, MAX_AGE.getSeconds());
+    }
+
+    /** As above with the realm's limit ({@link RealmSettings#mailboxMaxAgeSeconds}). */
+    public static boolean due(String lastVerified, Instant now, long maxAgeSeconds) {
         if (lastVerified == null || lastVerified.isBlank()) return true;
         try {
             Instant t = Instant.parse(lastVerified.trim());
-            return Duration.between(t, now).compareTo(MAX_AGE) > 0;
+            return Duration.between(t, now).getSeconds() > maxAgeSeconds;
         } catch (DateTimeParseException e) {
             return true;
         }

@@ -7,7 +7,7 @@ import { createPublicKey, verify } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { start, exchange, ensureUser, deleteUser, userByEmail, admin, totp, PASSWORD, KC, KC_PUBLIC } from './lib.mjs';
+import { start, exchange, ensureUser, deleteUser, userByEmail, admin, totp, setRealmAttributes, serviceToken, PASSWORD, KC, KC_PUBLIC } from './lib.mjs';
 import { CONFIG, readJson } from '../../scripts/realm/lib.mjs';
 
 const SEED = readJson(join(CONFIG, 'env', 'local-seed.json'));
@@ -19,6 +19,7 @@ const CLIENT = 'integration-erasure-probe';
 let server;
 let port;
 const received = [];
+let failNext = 0; // answer 503 to this many notices first (a product that is down)
 
 before(async () => {
   await deleteUser(STAFF_TEMP);
@@ -28,6 +29,7 @@ before(async () => {
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
+      if (failNext > 0) { failNext--; res.writeHead(503).end('down'); return; }
       received.push({ path: req.url, token: new URLSearchParams(body).get('erasure_token') });
       res.writeHead(200, { 'content-type': 'application/json' }).end('{"erased":true}');
     });
@@ -72,6 +74,11 @@ test('OCN staff: a password sign-in always asks for the authenticator code, and 
   const t = await exchange(r.redirect, verifier);
   assert.equal(t.id.acr, '2');
   assert.ok(t.access.realm_access.roles.includes('ocn-staff'), 'ocn-admin includes ocn-staff');
+  // The stored LOGIN event says it was a staff sign-in.
+  const u = await userByEmail(TOBY);
+  const events = await admin.get(`/events?user=${u.id}&type=LOGIN&max=1`);
+  assert.equal(events[0]?.details?.civicos_staff, 'true');
+  assert.equal(events[0]?.details?.civicos_level, '2');
 });
 
 test('OCN staff without an authenticator app must set one up, even after an email code', async () => {
@@ -102,6 +109,7 @@ test('account erasure: deleting an account sends every registered product a sign
   assert.equal(header.alg, 'RS256');
   assert.equal(claims.sub, u.id);
   assert.equal(claims.aud, CLIENT);
+  assert.equal(claims.email, ERASE, 'the token carries the email, for rows pushed by email only');
   assert.equal(claims.iss, `${KC_PUBLIC}/realms/ocn`);
   assert.ok(claims.events['https://ocn.technology/events/account-erased']);
   // Signed with a key the realm publishes.
@@ -122,6 +130,37 @@ test('account erasure: deleting an account sends every registered product a sign
   for (let i = 0; i < 50 && !received.length; i++) await new Promise((r) => setTimeout(r, 200));
   assert.equal(received.length, 1);
   assert.equal((await fetch(`${KC}/realms/ocn/civicos-erasure/resend`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 401);
+});
+
+test('account erasure: a product that is down is retried from the stored outbox until it answers', async () => {
+  const before = await setRealmAttributes({ 'civicos.erasure.retryBaseSeconds': '1' });
+  try {
+    const u = await ensureUser(ERASE);
+    received.length = 0;
+    failNext = 2;
+    await admin.del(`/users/${u.id}`);
+    // While the product is down the notice is pending in Keycloak's database.
+    const token = await serviceToken();
+    let pending = [];
+    for (let i = 0; i < 40 && !pending.some((p) => p.sub === u.id); i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      const res = await fetch(`${KC}/realms/ocn/civicos-erasure/pending`, { headers: { authorization: `Bearer ${token}` } });
+      assert.equal(res.status, 200);
+      pending = await res.json();
+    }
+    const mine = pending.find((p) => p.sub === u.id && p.clientId === CLIENT);
+    assert.ok(mine, 'the notice is stored as pending');
+    for (let i = 0; i < 150 && !received.length; i++) await new Promise((r) => setTimeout(r, 400));
+    assert.equal(received.length, 1, 'delivered once the product answers');
+    assert.equal(JSON.parse(Buffer.from(received[0].token.split('.')[1], 'base64url').toString()).sub, u.id);
+    const stillPending = async () => (await (await fetch(`${KC}/realms/ocn/civicos-erasure/pending`, { headers: { authorization: `Bearer ${token}` } })).json()).some((p) => p.sub === u.id && p.clientId === CLIENT);
+    let waiting = await stillPending();
+    for (let i = 0; i < 20 && waiting; i++) { await new Promise((r) => setTimeout(r, 250)); waiting = await stillPending(); }
+    assert.equal(waiting, false, 'nothing left pending for the product');
+  } finally {
+    failNext = 0;
+    await setRealmAttributes({ 'civicos.erasure.retryBaseSeconds': before['civicos.erasure.retryBaseSeconds'] ?? '60' });
+  }
 });
 
 test('new accounts get a random id, never the email address', async () => {

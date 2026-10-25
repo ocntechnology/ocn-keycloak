@@ -1174,7 +1174,7 @@
     {
       "clientId": "civicos-portal",
       "name": "CivicOS Portal",
-      "description": "Central CivicOS portal (Next.js + Auth.js) — single sign-on desktop/launcher.",
+      "description": "Central CivicOS portal (Next.js + Auth.js): single sign-on desktop/launcher.",
       "protocol": "openid-connect",
       "enabled": true,
       "publicClient": false,

@@ -88,6 +88,30 @@
           "view-identity-providers"
         ]
       }
+    },
+    {
+      "clientId": "civicos-directory",
+      "name": "CivicOS directory",
+      "description": "The council directory and registry. No sign-in of its own: it is told about account erasures (civicos.erasure.url) and erases the person's individual record, email and memberships.",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "civicos.erasure.url": "{{directoryBackchannelUrl}}/api/auth/civicos/erase",
+        "backchannel.logout.url": ""
+      }
+    }
+  ],
+  "builtIn": [
+    {
+      "$comment": "Keycloak's own admin-cli in realm ocn: no password grants (admin scripts use the master realm or a service account).",
+      "clientId": "admin-cli",
+      "directAccessGrantsEnabled": false
     }
   ]
 }

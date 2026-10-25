@@ -1,0 +1,31 @@
+{
+  "$comment": "Client policies applied by scripts/realm/apply.mjs. civicos-session-rules (executor in the extension) refuses a token refresh, for every client, when the session no longer meets the sign-in rules: a council SSO session past civicos.ssoSessionMaxSeconds, a non-SSO session at an organisation that now requires SSO, or a password or code session whose mailbox check is past civicos.mailboxMaxAgeSeconds.",
+  "profiles": [
+    {
+      "name": "civicos-session-rules",
+      "description": "CivicOS session rules at token refresh",
+      "executors": [
+        {
+          "executor": "civicos-session-rules",
+          "configuration": {}
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "name": "civicos-session-rules",
+      "description": "Every client: CivicOS session rules at token refresh",
+      "enabled": true,
+      "conditions": [
+        {
+          "condition": "any-client",
+          "configuration": {}
+        }
+      ],
+      "profiles": [
+        "civicos-session-rules"
+      ]
+    }
+  ]
+}

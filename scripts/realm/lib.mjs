@@ -64,9 +64,13 @@ export function loadDesired(env) {
   const clientsCfg = readJson(join(CONFIG, 'clients.json'));
   const products = clientsCfg.products.map((p) => productClient(render(p, vars), clientsCfg.productTemplate));
   const service = render(clientsCfg.service, vars);
+  // Keycloak's own clients (admin-cli): only the listed fields are managed, never created.
+  const builtIn = render(clientsCfg.builtIn || [], vars).map((c) => ({ ...c, builtIn: true }));
   const scopes = render(readJson(join(CONFIG, 'client-scopes.json')), vars);
   const flows = readJson(join(CONFIG, 'flows.json')).flows;
-  return { vars, settings, clients: [...products, ...service], scopes, flows };
+  const policiesFile = join(CONFIG, 'client-policies.json');
+  const clientPolicies = existsSync(policiesFile) ? render(readJson(policiesFile), vars) : null;
+  return { vars, settings, clients: [...products, ...service, ...builtIn], scopes, flows, clientPolicies };
 }
 
 export function productClient(p, template) {
@@ -170,26 +174,39 @@ export class Admin {
   }
 }
 
-/** Flatten a desired flow definition to comparable rows: depth, provider or subflow alias, requirement. */
+/** Stable text for an execution's config ({ alias, config }), or null when it has none. */
+function configKey(cfg) {
+  if (!cfg) return null;
+  const sorted = Object.fromEntries(Object.entries(cfg.config || {}).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, String(v)]));
+  return JSON.stringify({ alias: cfg.alias, config: sorted });
+}
+
+/** Flatten a desired flow definition to comparable rows: depth, provider or subflow alias, requirement, config. */
 export function desiredFlowRows(executions, depth = 0) {
   const rows = [];
   for (const e of executions) {
     if (e.subflow) {
-      rows.push({ level: depth, key: `flow:${e.subflow}`, requirement: e.requirement });
+      rows.push({ level: depth, key: `flow:${e.subflow}`, requirement: e.requirement, config: null });
       rows.push(...desiredFlowRows(e.executions || [], depth + 1));
     } else {
-      rows.push({ level: depth, key: e.authenticator, requirement: e.requirement });
+      rows.push({ level: depth, key: e.authenticator, requirement: e.requirement, config: configKey(e.config) });
     }
   }
   return rows;
 }
 
-export function liveFlowRows(executions) {
-  return executions.map((e) => ({
-    level: e.level,
-    key: e.authenticationFlow ? `flow:${e.displayName}` : e.providerId,
-    requirement: e.requirement,
-  }));
+/** The live rows; with an Admin, each execution's config is read too. */
+export async function liveFlowRows(executions, kc) {
+  const rows = [];
+  for (const e of executions) {
+    let config = null;
+    if (kc && e.authenticationConfig) {
+      const c = await kc.get(`/authentication/config/${e.authenticationConfig}`, { allow404: true });
+      config = configKey(c);
+    }
+    rows.push({ level: e.level, key: e.authenticationFlow ? `flow:${e.displayName}` : e.providerId, requirement: e.requirement, config });
+  }
+  return rows;
 }
 
 export function flowProviders(executions, out = new Set()) {

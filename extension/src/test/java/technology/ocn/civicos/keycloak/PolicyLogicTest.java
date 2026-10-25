@@ -146,6 +146,6 @@ class PolicyLogicTest {
     @Test void codeEmailWording() {
         assertTrue(CodeMailer.text("123456", false).contains("123456"));
         assertTrue(CodeMailer.text("123456", true).contains("30 days"));
-        assertFalse(CodeMailer.html("123456", false).contains("—"), "no em dashes");
+        assertFalse(CodeMailer.html("123456", false).contains("\u2014"), "no em dashes");
     }
 }

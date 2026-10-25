@@ -51,8 +51,15 @@ async function applyClients() {
   const scopes = await kc.get('/client-scopes');
   const scopeId = (name) => scopes.find((s) => s.name === name)?.id;
   for (const c of desired.clients) {
-    const { defaultClientScopes, optionalClientScopes, serviceAccountRealmRoles, serviceAccountClientRoles, ...rep } = c;
+    const { defaultClientScopes, optionalClientScopes, serviceAccountRealmRoles, serviceAccountClientRoles, builtIn, ...rep } = c;
     let live = await kc.client(c.clientId);
+    if (builtIn) {
+      // Keycloak's own client: set the listed fields only.
+      if (!live) { console.warn(`  warning: built-in client ${c.clientId} does not exist`); continue; }
+      log(`update built-in client ${c.clientId}`);
+      if (!dry) await kc.put(`/clients/${live.id}`, { ...live, ...rep });
+      continue;
+    }
     if (!live) {
       log(`create client ${c.clientId}`);
       if (dry) continue;
@@ -112,7 +119,9 @@ async function buildFlowInto(alias, executions) {
       await buildFlowInto(e.subflow, e.executions || []);
     } else {
       await kc.post(`/authentication/flows/${encodeURIComponent(alias)}/executions/execution`, { provider: e.authenticator });
-      await setRequirement(alias, e.authenticator, e.requirement);
+      const row = await setRequirement(alias, e.authenticator, e.requirement);
+      // Config aliases are unique per realm, so they carry the build suffix until the swap.
+      if (e.config) await kc.post(`/authentication/executions/${row.id}/config`, { alias: e.config.alias, config: e.config.config });
     }
   }
 }
@@ -123,6 +132,7 @@ async function setRequirement(alias, key, requirement) {
   const direct = rows.filter((r) => r.level === 0 && (r.authenticationFlow ? `flow:${r.displayName}` : r.providerId) === key);
   const row = direct[direct.length - 1];
   if (row.requirement !== requirement) await kc.put(`/authentication/flows/${encodeURIComponent(alias)}/executions`, { ...row, requirement });
+  return row;
 }
 
 async function applyFlows() {
@@ -138,7 +148,7 @@ async function applyFlows() {
     applied.add(f.alias);
     const live = flows.find((x) => x.alias === f.alias);
     if (live) {
-      const same = JSON.stringify(liveFlowRows(await kc.flowExecutions(f.alias))) === JSON.stringify(desiredFlowRows(f.executions));
+      const same = JSON.stringify(await liveFlowRows(await kc.flowExecutions(f.alias), kc)) === JSON.stringify(desiredFlowRows(f.executions));
       if (same) continue;
     }
     log(`${live ? 'rebuild' : 'create'} flow ${f.alias}`);
@@ -164,13 +174,21 @@ async function applyFlows() {
 }
 
 function suffixSubflows(executions, suffix) {
-  return executions.map((e) => (e.subflow ? { ...e, subflow: e.subflow + suffix, executions: suffixSubflows(e.executions || [], suffix) } : e));
+  return executions.map((e) => {
+    if (e.subflow) return { ...e, subflow: e.subflow + suffix, executions: suffixSubflows(e.executions || [], suffix) };
+    if (e.config) return { ...e, config: { ...e.config, alias: e.config.alias + suffix } };
+    return e;
+  });
 }
 
 async function renameSubflows(alias, suffix) {
   const rows = await kc.flowExecutions(alias);
   const all = await kc.get('/authentication/flows');
   for (const r of rows) {
+    if (r.authenticationConfig) {
+      const cfg = await kc.get(`/authentication/config/${r.authenticationConfig}`, { allow404: true });
+      if (cfg?.alias?.endsWith(suffix)) await kc.put(`/authentication/config/${cfg.id}`, { ...cfg, alias: cfg.alias.slice(0, -suffix.length) });
+    }
     if (!r.authenticationFlow || !r.displayName.endsWith(suffix)) continue;
     // Subflows are not listed at top level; update through the execution's flowId.
     const target = r.flowId;
@@ -201,9 +219,10 @@ async function applySettings(appliedFlows) {
   const want = structuredClone(desired.settings);
   const profileAttrs = want.userProfileAttributes || [];
   delete want.userProfileAttributes;
-  for (const [key, flow] of [['browserFlow', 'civicos-browser'], ['firstBrokerLoginFlow', 'civicos-first-broker-login']]) {
-    if (want[key] === flow && !appliedFlows.has(flow)) {
-      const fallback = key === 'browserFlow' ? 'browser' : 'first broker login';
+  const FALLBACK = { browserFlow: 'browser', firstBrokerLoginFlow: 'first broker login', resetCredentialsFlow: 'reset credentials', directGrantFlow: 'direct grant' };
+  for (const [key, fallback] of Object.entries(FALLBACK)) {
+    const flow = want[key];
+    if (flow && flow !== fallback && !appliedFlows.has(flow)) {
       console.warn(`${key}: ${flow} not available, keeping ${live[key] || fallback}`);
       want[key] = live[key] || fallback;
     }
@@ -276,6 +295,22 @@ async function applyRoles() {
   }
 }
 
+/** Client policies (realm/config/client-policies.json): the realm's profiles and policies become exactly these. */
+async function applyClientPolicies() {
+  const cp = desired.clientPolicies;
+  if (!cp) return;
+  const executors = new Set();
+  const server = await kc.req('GET', `${kc.server}/admin/serverinfo`);
+  for (const p of server.providers?.['client-policy-executor']?.providers ? Object.keys(server.providers['client-policy-executor'].providers) : []) executors.add(p);
+  const missing = cp.profiles.flatMap((p) => p.executors.map((e) => e.executor)).filter((e) => !executors.has(e));
+  if (missing.length) { console.warn(`skip client policies: executors not installed: ${missing.join(', ')} (build the extension first)`); return; }
+  const strip = (x) => JSON.parse(JSON.stringify(x, (k, v) => (k.startsWith('$') ? undefined : v)));
+  const liveProfiles = (await kc.get('/client-policies/profiles')).profiles || [];
+  const livePolicies = (await kc.get('/client-policies/policies')).policies || [];
+  if (JSON.stringify(liveProfiles) !== JSON.stringify(strip(cp.profiles))) { log('update client policy profiles'); if (!dry) await kc.put('/client-policies/profiles', { profiles: strip(cp.profiles) }); }
+  if (JSON.stringify(livePolicies) !== JSON.stringify(strip(cp.policies))) { log('update client policies'); if (!dry) await kc.put('/client-policies/policies', { policies: strip(cp.policies) }); }
+}
+
 async function main() {
   const realm = await kc.get('', { allow404: true });
   if (!realm) throw new Error(`realm ${args.realm} does not exist on ${kc.server}`);
@@ -286,6 +321,7 @@ async function main() {
   const secrets = await applyClients();
   const flows = await applyFlows();
   await applySettings(flows);
+  await applyClientPolicies();
   if (args.organisations) await applyOrganisations(args.organisations);
   if (args['secrets-out'] && !dry) {
     const lines = Object.entries(secrets).map(([id, s]) => `${id.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_CLIENT_SECRET=${s}`);
