@@ -190,3 +190,9 @@ a:hover {
 .civicos-link:hover { color: var(--cvc-indigo-dark); }
 .civicos-link:focus-visible { outline: 3px solid #ffdd00; outline-offset: 2px; box-shadow: 0 0 0 5px var(--cvc-ink); }
 #civicos-choose-form .pf-v5-c-button, #civicos-password-form .pf-v5-c-button, #civicos-code-form .pf-v5-c-button { margin-bottom: 0.5rem; }
+/* Long button labels ("Sign in with Kingston Council SSO") wrap inside the card. */
+#civicos-choose-form .pf-v5-c-button,
+#civicos-password-form .pf-v5-c-button,
+#civicos-code-form .pf-v5-c-button { white-space: normal; max-width: 100%; box-sizing: border-box; }
+/* Titles use the card's full width (no language column on CivicOS screens). */
+.pf-v5-c-login__main-header { grid-template-columns: 1fr; }
