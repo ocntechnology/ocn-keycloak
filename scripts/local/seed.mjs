@@ -109,7 +109,12 @@ async function seedCouncilSim() {
     standardFlowEnabled: true,
     directAccessGrantsEnabled: false,
     redirectUris: [`${ocnPublic}/realms/ocn/broker/${cfg.idpAlias}/endpoint`, `${server}/realms/ocn/broker/${cfg.idpAlias}/endpoint`],
-    attributes: { 'pkce.code.challenge.method': 'S256' },
+    attributes: {
+      'pkce.code.challenge.method': 'S256',
+      // Signing out of CivicOS after a council sign-in passes through the council's logout and
+      // comes back to the broker's logout_response; without this the fake council refused it.
+      'post.logout.redirect.uris': [ocnPublic, server].map((h) => `${h}/realms/ocn/broker/${cfg.idpAlias}/endpoint/logout_response`).join('##'),
+    },
   };
   if (!client) { await sim.post('/clients', clientRep); client = await sim.client(cfg.clientId); }
   else await sim.put(`/clients/${client.id}`, { ...client, ...clientRep });
