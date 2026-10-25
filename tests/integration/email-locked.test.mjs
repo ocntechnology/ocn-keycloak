@@ -3,7 +3,7 @@
 // Run: node --test --test-concurrency=1 tests/integration/  (needs scripts/local-up.sh to have run)
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { Browser, start, exchange, clearMail, latestCode, ensureUser, deleteUser, userByEmail, admin, signIn, org, KC, PASSWORD } from './lib.mjs';
+import { Browser, start, exchange, clearMail, latestCode, ensureUser, deleteUser, userByEmail, admin, signIn, org, resetCodeLimits, KC, PASSWORD } from './lib.mjs';
 
 const ME = 'integration.email@towerhamlets.gov.uk';
 const OTHER = 'integration.email@hackney.gov.uk';
@@ -14,7 +14,8 @@ async function memberOf(userId) {
 }
 
 before(async () => {
-  for (const e of [ME, OTHER, PERSONAL]) await deleteUser(e);
+  // Fixed addresses: lift the per-address code limits (ID-3) so back-to-back runs get codes.
+  for (const e of [ME, OTHER, PERSONAL]) { await deleteUser(e); await resetCodeLimits(e); }
 });
 
 after(async () => {
