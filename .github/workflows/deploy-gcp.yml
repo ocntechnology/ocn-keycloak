@@ -104,6 +104,23 @@ jobs:
           echo "Custom themes copied successfully"
           ls -la "$DIST_DIR/themes/"
 
+      - name: Set up Java 21 for the CivicOS extension
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build CivicOS sign-in policy extension (with unit tests) and the password blocklist
+        run: |
+          DIST_DIR="${{ env.DIST_DIR }}"
+          (cd extension && mvn -B -q package)
+          mkdir -p "$DIST_DIR/providers" "$DIST_DIR/data/password-blacklists"
+          cp extension/target/civicos-signin-policy.jar "$DIST_DIR/providers/"
+          cp realm/civicos-password-blocklist.txt "$DIST_DIR/data/password-blacklists/"
+          # Installing the JAR changes nothing by itself: the realm only uses it once
+          # scripts/realm/apply.mjs --env production has been run (see docs/HOW-IT-WORKS.md).
+
       - name: Create keycloak.conf from template
         run: |
           mkdir -p "${{ env.DIST_DIR }}/conf"

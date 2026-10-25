@@ -84,7 +84,7 @@ export function pkce() {
   return { verifier, challenge };
 }
 
-export const PORTAL = { clientId: 'civicos-portal', redirectUri: 'http://localhost:3110/api/auth/callback/keycloak' };
+export const PORTAL = { clientId: 'civicos-portal', redirectUri: 'http://localhost:3115/api/auth/callback/keycloak' };
 
 export function authUrl({ clientId = PORTAL.clientId, redirectUri = PORTAL.redirectUri, challenge, extra = {} }) {
   const u = new URL(`${KC}/realms/ocn/protocol/openid-connect/auth`);

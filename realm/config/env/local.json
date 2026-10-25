@@ -9,7 +9,7 @@
     "ssl": "false",
     "starttls": "false"
   },
-  "portalUrl": "http://localhost:3110",
+  "portalUrl": "http://localhost:3115",
   "docsUrl": "http://localhost:3120",
   "groupsUrl": "http://localhost:3130",
   "discussUrl": "http://localhost:3140",
