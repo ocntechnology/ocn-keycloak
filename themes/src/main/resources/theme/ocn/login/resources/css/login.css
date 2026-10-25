@@ -179,3 +179,14 @@ a:hover {
   gap: 0.75rem;
   margin-bottom: 0.25rem;
 }
+
+/* CivicOS sign-in policy screens */
+.civicos-hint, .civicos-small { color: #4a4f57; font-size: 0.9375rem; margin: 0 0 0.5rem; line-height: 1.5; }
+.civicos-signed-as { margin: 0 0 1rem; line-height: 1.5; overflow-wrap: anywhere; }
+.civicos-link {
+  background: none; border: 0; padding: 0.5rem 0; margin-top: 0.25rem;
+  color: var(--cvc-indigo); text-decoration: underline; font: inherit; cursor: pointer;
+}
+.civicos-link:hover { color: var(--cvc-indigo-dark); }
+.civicos-link:focus-visible { outline: 3px solid #ffdd00; outline-offset: 2px; box-shadow: 0 0 0 5px var(--cvc-ink); }
+#civicos-choose-form .pf-v5-c-button, #civicos-password-form .pf-v5-c-button, #civicos-code-form .pf-v5-c-button { margin-bottom: 0.5rem; }
