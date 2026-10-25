@@ -4,7 +4,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   Browser, start, exchange, clearMail, latestCode, ensureUser, deleteUser, setUserAttribute, setOrgAttributes,
-  userByEmail, admin, simAdmin, totp, PASSWORD, KC,
+  userByEmail, admin, simAdmin, totp, resetCodeLimits, PASSWORD, KC,
 } from './lib.mjs';
 
 const pause = () => new Promise((r) => setTimeout(r, 1100));
@@ -15,7 +15,11 @@ const GUEST = 'guest@partner-agency.example';
 const LOCK = 'integration.lockout@hackney.gov.uk';
 const STEP = 'integration.stepup@hackney.gov.uk';
 
+// Email codes are capped per address (3 in 15 minutes): start each run with a clean count.
+const CODE_ADDRESSES = [TH, NEW_HACKNEY, GUEST, STEP, LOCK];
+
 before(async () => {
+  for (const e of CODE_ADDRESSES) await resetCodeLimits(e);
   await deleteUser(NEW_HACKNEY);
   await deleteUser(GUEST);
   await deleteUser(STEP);
@@ -30,13 +34,15 @@ after(async () => {
   await setOrgAttributes('hackney', { signInPolicy: 'open', requireSecondFactor: 'false' });
   await setUserAttribute(TH, 'civicosMailboxVerifiedAt', new Date().toISOString());
   for (const e of [NEW_HACKNEY, GUEST, STEP, LOCK]) await deleteUser(e);
+  for (const e of CODE_ADDRESSES) { await resetCodeLimits(e); await clearMail(e); }
 });
 
 test('the sign-in page asks for an email first, with the OCN theme', async () => {
   const { browser } = await start();
   assert.equal(browser.template(), 'civicos-email.ftl');
   assert.match(browser.html, /<label for="email"/);
-  assert.match(browser.html, /autocomplete="username email"/);
+  assert.match(browser.html, /autocomplete="username"/);
+  assert.doesNotMatch(browser.html, /autocomplete="username email"/);
   assert.match(browser.html, /login\.css/);
 });
 
@@ -60,6 +66,8 @@ test('a wrong password is refused with a clear message', async () => {
   await browser.submit('civicos-password-form', { password: 'not-the-password-123' });
   assert.equal(browser.template(), 'civicos-password.ftl');
   assert.match(browser.text(), /That password is not right/);
+  // UX-1: no stock "Username or email" block with a restart button after a wrong password.
+  assert.doesNotMatch(browser.html, /kc-attempted-username|id="reset-login"/);
 });
 
 test('personal email addresses are refused', async () => {
@@ -99,7 +107,8 @@ test('first email-code sign-in at a registered council creates the account and a
   assert.match(mail.text, /works for 10 minutes/);
   await browser.submit('civicos-code-form', { code: mail.code });
   assert.match(browser.html, /id="kc-update-profile-form"/, 'asks for their name');
-  const r = await browser.submit('kc-update-profile-form', { firstName: 'Ina', lastName: 'Tegration', email: NEW_HACKNEY });
+  assert.doesNotMatch(browser.html, /<input[^>]*name="email"/, 'the email is shown as text, not a field');
+  const r = await browser.submit('kc-update-profile-form', { firstName: 'Ina', lastName: 'Tegration' });
   assert.ok(r.redirect, browser.text().slice(0, 300));
   const t = await exchange(r.redirect, verifier);
   assert.equal(t.id.acr, '1');
@@ -158,7 +167,7 @@ test('SSO available: the choice page offers council SSO; SSO gives acr 2 and lin
   const { browser, verifier } = await start();
   await browser.submit('civicos-email-form', { email: KINGSTON });
   assert.equal(browser.template(), 'civicos-choose.ftl');
-  assert.match(browser.text(), /Sign in with Kingston Council SSO/);
+  assert.match(browser.text(), /Sign in with your Kingston Council account/);
   assert.match(browser.text(), /Use my password/);
   await browser.submit('civicos-choose-form', { method: 'sso' });
   const r = await councilSimLogin(browser, 'officer');
@@ -272,7 +281,8 @@ test('brute force: 10 wrong passwords lock the account for 15 minutes', async ()
 
 test('password policy: under 12 characters, the email, or a common password is refused', async () => {
   const u = await ensureUser(STEP);
-  for (const value of ['Short-pw1!', STEP, 'passwordpassword']) {
+  // 'websolutions' and 'ChickenWing101' are only in the larger list (10 million passwords, ID-12).
+  for (const value of ['Short-pw1!', STEP, 'passwordpassword', 'websolutions', 'ChickenWing101']) {
     await assert.rejects(admin.put(`/users/${u.id}/reset-password`, { type: 'password', value, temporary: false }), /400/, value);
   }
   await admin.put(`/users/${u.id}/reset-password`, { type: 'password', value: 'A-long-unusual-phrase-77', temporary: false });
