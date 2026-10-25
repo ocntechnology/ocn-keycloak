@@ -12,7 +12,7 @@
                 </div>
                 <p id="email-hint" class="civicos-hint">${msg("civicosEmailHint")}</p>
                 <span class="${properties.kcInputClass!} <#if message?? && message.type = 'error'>${properties.kcError!}</#if>">
-                    <input id="email" name="email" type="email" value="${civicosEmailValue!''}" autocomplete="username email" autocapitalize="none" spellcheck="false" autofocus
+                    <input id="email" name="email" type="email" value="${civicosEmailValue!''}" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus
                            aria-describedby="email-hint" <#if message?? && message.type = 'error'>aria-invalid="true"</#if> />
                 </span>
             </div>

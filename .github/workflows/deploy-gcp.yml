@@ -316,7 +316,7 @@ jobs:
           echo "Copying tarball to VM..."
           scp "$TARBALL" kc:/tmp/keycloak-dist.tar.gz
 
-          # Extract on VM. Wipe themes/ first — tar extract merges and would leave
+          # Extract on VM. Wipe themes/ first, tar extract merges and would leave
           # stale files (e.g. a leftover LEOS styles.css under themes/ocn/) that
           # shadow the files we ship.
           echo "Extracting on VM..."
