@@ -1,0 +1,18 @@
+{
+  "frontendUrl": "",
+  "smtp": {
+    "host": "localhost",
+    "port": "1025",
+    "from": "no-reply@ocn.technology",
+    "fromDisplayName": "CivicOS",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "portalUrl": "http://localhost:3110",
+  "docsUrl": "http://localhost:3120",
+  "groupsUrl": "http://localhost:3130",
+  "discussUrl": "http://localhost:3140",
+  "directoryUrl": "http://localhost:3100",
+  "committeeUrl": "http://localhost:3001"
+}

@@ -1,0 +1,63 @@
+{
+  "$comment": "Realm settings applied by scripts/realm/apply.mjs. Values in {{double braces}} come from realm/config/env/<env>.json.",
+  "displayName": "CivicOS",
+  "loginTheme": "ocn",
+  "emailTheme": "keycloak",
+  "organizationsEnabled": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "passwordPolicy": "length(12) and maxLength(128) and notUsername and notEmail and notContainsUsername and passwordBlacklist(civicos-password-blocklist.txt)",
+  "bruteForceProtected": true,
+  "bruteForceStrategy": "MULTIPLE",
+  "permanentLockout": false,
+  "failureFactor": 10,
+  "waitIncrementSeconds": 900,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "ssoSessionIdleTimeout": 2592000,
+  "ssoSessionMaxLifespan": 2592000,
+  "accessTokenLifespan": 300,
+  "browserFlow": "civicos-browser",
+  "firstBrokerLoginFlow": "civicos-first-broker-login",
+  "smtpServer": "{{smtp}}",
+  "attributes": {
+    "frontendUrl": "{{frontendUrl}}",
+    "acr.loa.map": "{\"1\":1,\"2\":2}"
+  },
+  "userProfileAttributes": [
+    {
+      "name": "civicosMailboxVerifiedAt",
+      "displayName": "Mailbox last verified (CivicOS)",
+      "permissions": {
+        "view": [
+          "admin"
+        ],
+        "edit": [
+          "admin"
+        ]
+      },
+      "multivalued": false,
+      "annotations": {}
+    },
+    {
+      "name": "civicosLastSignInMethod",
+      "displayName": "Last sign-in method (CivicOS)",
+      "permissions": {
+        "view": [
+          "admin"
+        ],
+        "edit": [
+          "admin"
+        ]
+      },
+      "multivalued": false,
+      "annotations": {}
+    }
+  ]
+}

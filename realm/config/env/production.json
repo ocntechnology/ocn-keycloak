@@ -1,0 +1,20 @@
+{
+  "frontendUrl": "https://auth.ocn.technology",
+  "smtp": {
+    "host": "email-smtp.eu-west-1.amazonaws.com",
+    "port": "465",
+    "from": "no-reply@ocn.technology",
+    "fromDisplayName": "CivicOS",
+    "auth": "true",
+    "user": "${SMTP_USER}",
+    "password": "${SMTP_PASSWORD}",
+    "ssl": "true",
+    "starttls": "false"
+  },
+  "portalUrl": "https://civicos.ocn.technology",
+  "docsUrl": "https://docs.ocn.technology",
+  "groupsUrl": "https://groups.ocn.technology",
+  "discussUrl": "https://discuss.ocn.technology",
+  "directoryUrl": "https://directory.ocn.technology",
+  "committeeUrl": "https://committees.ocn.technology"
+}

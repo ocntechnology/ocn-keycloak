@@ -1,0 +1,86 @@
+{
+  "$comment": "Platform OIDC clients. Every product: authorization code + PKCE (S256), direct access grants off, exact redirect URIs, back-channel logout. Secrets are never stored here; apply.mjs prints or writes them.",
+  "products": [
+    {
+      "clientId": "civicos-portal",
+      "name": "CivicOS Portal",
+      "url": "{{portalUrl}}"
+    },
+    {
+      "clientId": "ocn-docs",
+      "name": "CivicOS Docs",
+      "url": "{{docsUrl}}"
+    },
+    {
+      "clientId": "civicos-groups",
+      "name": "CivicOS Groups",
+      "url": "{{groupsUrl}}"
+    },
+    {
+      "clientId": "civicos-discuss",
+      "name": "CivicOS Discuss",
+      "url": "{{discussUrl}}"
+    },
+    {
+      "clientId": "civicos-committee",
+      "name": "CivicOS Committees",
+      "url": "{{committeeUrl}}"
+    }
+  ],
+  "productTemplate": {
+    "protocol": "openid-connect",
+    "enabled": true,
+    "publicClient": false,
+    "clientAuthenticatorType": "client-secret",
+    "standardFlowEnabled": true,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": false,
+    "frontchannelLogout": false,
+    "fullScopeAllowed": true,
+    "attributes": {
+      "pkce.code.challenge.method": "S256",
+      "backchannel.logout.session.required": "true",
+      "backchannel.logout.revoke.offline.tokens": "true",
+      "use.refresh.tokens": "true"
+    },
+    "defaultClientScopes": [
+      "web-origins",
+      "acr",
+      "profile",
+      "roles",
+      "email",
+      "basic",
+      "organization"
+    ],
+    "optionalClientScopes": [
+      "offline_access"
+    ]
+  },
+  "service": [
+    {
+      "clientId": "civicos-registry-sync",
+      "name": "CivicOS registry sync",
+      "description": "Service account used by the council registry to keep Keycloak organisations in step.",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "serviceAccountRealmRoles": [],
+      "serviceAccountClientRoles": {
+        "realm-management": [
+          "manage-realm",
+          "view-realm",
+          "manage-users",
+          "view-users",
+          "query-users",
+          "manage-identity-providers",
+          "view-identity-providers"
+        ]
+      }
+    }
+  ]
+}

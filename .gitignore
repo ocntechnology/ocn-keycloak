@@ -107,3 +107,7 @@ quarkus/data/*.db
 # sanitised realm/ocn-realm.json is committed — see docs/realm-management.md
 *-realm-export*.json
 ocn-realm-export.raw.json
+
+# Local platform state written by scripts/local-up.sh (secrets, logs, status)
+local/*
+!local/README.md
