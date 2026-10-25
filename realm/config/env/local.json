@@ -1,5 +1,5 @@
 {
-  "frontendUrl": "",
+  "frontendUrl": "http://auth.civicos.localhost:8180",
   "smtp": {
     "host": "localhost",
     "port": "1025",
@@ -9,10 +9,17 @@
     "ssl": "false",
     "starttls": "false"
   },
-  "portalUrl": "http://localhost:3115",
-  "docsUrl": "http://localhost:3120",
-  "groupsUrl": "http://localhost:3130",
-  "discussUrl": "http://localhost:3140",
-  "directoryUrl": "http://localhost:3100",
-  "committeeUrl": "http://localhost:3001"
+  "portalUrl": "http://portal.civicos.localhost:3115",
+  "docsUrl": "http://docs.civicos.localhost:3120",
+  "groupsUrl": "http://groups.civicos.localhost:3130",
+  "discussUrl": "http://discuss.civicos.localhost:3140",
+  "directoryUrl": "http://directory.civicos.localhost:3100",
+  "committeeUrl": "http://localhost:3001",
+  "portalBackchannelUrl": "http://127.0.0.1:3115",
+  "docsBackchannelUrl": "http://127.0.0.1:3120",
+  "groupsBackchannelUrl": "http://127.0.0.1:3130",
+  "discussBackchannelUrl": "http://127.0.0.1:3140",
+  "committeeBackchannelUrl": "http://localhost:3001",
+  "$comment": "Local: every product on its own *.civicos.localhost host (same site, like *.ocn.technology in production; see ~/Repositories/civicos-local). Back-channel calls from Keycloak use 127.0.0.1 because Java cannot resolve *.localhost.",
+  "sslRequired": "none"
 }

@@ -82,10 +82,14 @@ export function productClient(p, template) {
     redirectUris: [`${url}/api/auth/callback/keycloak`, ...(p.extraRedirectUris || [])],
     webOrigins: [url],
   });
+  // Keycloak calls the product server to server (back-channel logout, account erasure). Locally
+  // that is http://127.0.0.1:<port>, because Java cannot resolve the *.civicos.localhost names.
+  const server = (p.backchannelUrl || url).replace(/\/$/, '');
   c.attributes = {
     ...c.attributes,
     'post.logout.redirect.uris': `${url}/*`,
-    'backchannel.logout.url': `${url}/api/auth/civicos/backchannel-logout`,
+    'backchannel.logout.url': `${server}/api/auth/civicos/backchannel-logout`,
+    'civicos.erasure.url': p.erasure === false ? '' : `${server}/api/auth/civicos/erase`,
   };
   return c;
 }

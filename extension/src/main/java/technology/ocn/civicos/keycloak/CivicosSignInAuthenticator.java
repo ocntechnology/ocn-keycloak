@@ -95,6 +95,8 @@ public class CivicosSignInAuthenticator implements Authenticator {
         OrgPolicy org = Orgs.policyFor(session, EmailDomains.domainOf(email));
         AcrStore acr = new AcrStore(session, as);
         int requested = acr.getRequestedLevelOfAuthentication(ctx.getTopLevelFlow());
+        // OCN staff sessions are always level 2: an older level 1 staff session is stepped up.
+        if (isStaff(realm, user) && !"sso".equals(method)) requested = Math.max(requested, Assurance.STRONG);
 
         // Policy changed to SSO only, or an SSO session is past 12 hours: back through the council's sign-in.
         boolean ssoNow = org.policy() == SignInPolicy.SSO_REQUIRED && !"sso".equals(method);
@@ -300,7 +302,7 @@ public class CivicosSignInAuthenticator implements Authenticator {
                 ctx.challenge(emailForm(ctx, email, "civicosUnknownDomain"));
                 return;
             }
-            user = session.users().addUser(realm, email, email, true, true);
+            user = session.users().addUser(realm, email); // a random id: the sub is never the email address
             user.setEnabled(true);
             user.setEmail(email);
             user.setEmailVerified(true);
@@ -334,7 +336,7 @@ public class CivicosSignInAuthenticator implements Authenticator {
         OrgPolicy org = Orgs.policyFor(ctx.getSession(), EmailDomains.domainOf(email == null ? "" : email));
         int requested = new AcrStore(ctx.getSession(), as).getRequestedLevelOfAuthentication(ctx.getTopLevelFlow());
         boolean hasOtp = user.credentialManager().isConfiguredFor(OTPCredentialModel.TYPE);
-        if (Assurance.needsSecondFactor(method, org.requireSecondFactor(), requested, hasOtp)) {
+        if (Assurance.needsSecondFactor(method, org.requireSecondFactor(), requested, hasOtp, isStaff(ctx.getRealm(), user))) {
             ctx.setUser(user);
             if (hasOtp) {
                 as.setAuthNote(N_STAGE, "otp");
@@ -347,6 +349,12 @@ public class CivicosSignInAuthenticator implements Authenticator {
             as.setAuthNote(N_SECOND, "true");
         }
         finish(ctx, user);
+    }
+
+    /** OCN staff: the realm role {@code ocn-staff}, directly, through a composite or a group. */
+    static boolean isStaff(RealmModel realm, UserModel user) {
+        org.keycloak.models.RoleModel role = realm.getRole(Assurance.STAFF_ROLE);
+        return role != null && user.hasRole(role);
     }
 
     void otp(AuthenticationFlowContext ctx, String code) {

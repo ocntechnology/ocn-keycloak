@@ -1,5 +1,5 @@
 {
-  "$comment": "Realm settings applied by scripts/realm/apply.mjs. Values in {{double braces}} come from realm/config/env/<env>.json.",
+  "$comment": "Realm settings applied by scripts/realm/apply.mjs. Values in {{double braces}} come from realm/config/env/<env>.json. eventsListeners: civicos-erasure tells products when an account is deleted.",
   "displayName": "CivicOS",
   "loginTheme": "ocn",
   "emailTheme": "keycloak",
@@ -60,5 +60,12 @@
       "annotations": {}
     }
   ],
-  "displayNameHtml": "CivicOS"
+  "displayNameHtml": "CivicOS",
+  "eventsListeners": [
+    "jboss-logging",
+    "civicos-erasure"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
+  "sslRequired": "{{sslRequired}}"
 }

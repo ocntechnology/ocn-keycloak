@@ -14,9 +14,18 @@ public final class Assurance {
         return VERIFIED_EMAIL;
     }
 
+    /** Realm role held by OCN staff. Staff always use a second step (an authenticator app). */
+    public static final String STAFF_ROLE = "ocn-staff";
+
     /** Is a second step needed after a password or email code? */
     public static boolean needsSecondFactor(String method, boolean orgRequiresForPassword, int requestedLevel, boolean userHasOtp) {
+        return needsSecondFactor(method, orgRequiresForPassword, requestedLevel, userHasOtp, false);
+    }
+
+    /** As above; OCN staff ({@link #STAFF_ROLE}) always need the second step, whatever the method. */
+    public static boolean needsSecondFactor(String method, boolean orgRequiresForPassword, int requestedLevel, boolean userHasOtp, boolean staff) {
         if ("sso".equals(method)) return false;
+        if (staff) return true;
         if (requestedLevel >= STRONG) return true;
         if (orgRequiresForPassword && "password".equals(method)) return true;
         // Someone who has set up an authenticator app is always asked for it.

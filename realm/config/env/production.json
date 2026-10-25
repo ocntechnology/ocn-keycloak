@@ -16,5 +16,11 @@
   "groupsUrl": "https://groups.ocn.technology",
   "discussUrl": "https://discuss.ocn.technology",
   "directoryUrl": "https://directory.ocn.technology",
-  "committeeUrl": "https://committees.ocn.technology"
+  "committeeUrl": "https://committees.ocn.technology",
+  "portalBackchannelUrl": "https://civicos.ocn.technology",
+  "docsBackchannelUrl": "https://docs.ocn.technology",
+  "groupsBackchannelUrl": "https://groups.ocn.technology",
+  "discussBackchannelUrl": "https://discuss.ocn.technology",
+  "committeeBackchannelUrl": "https://committees.ocn.technology",
+  "sslRequired": "external"
 }

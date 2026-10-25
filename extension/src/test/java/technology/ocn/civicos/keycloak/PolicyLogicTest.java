@@ -129,6 +129,20 @@ class PolicyLogicTest {
         assertTrue(Assurance.needsSecondFactor("password", false, -1, true), "someone with an authenticator app is always asked");
     }
 
+    @Test void staffAlwaysUseASecondStep() {
+        assertTrue(Assurance.needsSecondFactor("password", false, -1, false, true), "OCN staff, password");
+        assertTrue(Assurance.needsSecondFactor("email_code", false, -1, false, true), "OCN staff, email code");
+        assertFalse(Assurance.needsSecondFactor("sso", false, -1, false, true), "SSO is already level 2");
+        assertFalse(Assurance.needsSecondFactor("password", false, -1, false, false), "not staff, nothing asked");
+    }
+
+    @Test void erasureUserIdFromAdminEventPath() {
+        assertEquals("1b2c", ErasureEventListener.userIdFromPath("users/1b2c"));
+        assertNull(ErasureEventListener.userIdFromPath("users/1b2c/role-mappings"));
+        assertNull(ErasureEventListener.userIdFromPath("clients/1b2c"));
+        assertNull(ErasureEventListener.userIdFromPath(null));
+    }
+
     @Test void codeEmailWording() {
         assertTrue(CodeMailer.text("123456", false).contains("123456"));
         assertTrue(CodeMailer.text("123456", true).contains("30 days"));

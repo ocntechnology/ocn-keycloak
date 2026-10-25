@@ -8,9 +8,10 @@
 // (master realm), or KC_ADMIN_CLIENT_ID / KC_ADMIN_CLIENT_SECRET (a service account in the realm).
 // Idempotent: run it as often as you like. Prints what it changed.
 
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
-  Admin, parseArgs, loadDesired, readJson, desiredFlowRows, liveFlowRows, flowProviders,
+  Admin, CONFIG, parseArgs, loadDesired, readJson, desiredFlowRows, liveFlowRows, flowProviders,
 } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -250,12 +251,38 @@ export async function applyOrganisations(file) {
   }
 }
 
+/** Realm roles from realm/config/roles.json (create, describe, composites; never removes). */
+async function applyRoles() {
+  const file = join(CONFIG, 'roles.json');
+  if (!existsSync(file)) return;
+  const { roles } = readJson(file);
+  for (const r of roles) {
+    let live = await kc.get(`/roles/${encodeURIComponent(r.name)}`, { allow404: true });
+    if (!live) {
+      log(`create realm role ${r.name}`);
+      if (dry) continue;
+      await kc.post('/roles', { name: r.name, description: r.description });
+      live = await kc.get(`/roles/${encodeURIComponent(r.name)}`);
+    } else if (live.description !== r.description) {
+      log(`update realm role ${r.name}`);
+      if (!dry) await kc.put(`/roles/${encodeURIComponent(r.name)}`, { ...live, description: r.description });
+    }
+    if (r.composites?.length && !dry) {
+      const have = (await kc.get(`/roles/${encodeURIComponent(r.name)}/composites`)) || [];
+      const add = [];
+      for (const c of r.composites) if (!have.some((h) => h.name === c)) add.push(await kc.get(`/roles/${encodeURIComponent(c)}`));
+      if (add.length) { log(`  ${r.name} includes ${add.map((x) => x.name).join(', ')}`); await kc.post(`/roles/${encodeURIComponent(r.name)}/composites`, add); }
+    }
+  }
+}
+
 async function main() {
   const realm = await kc.get('', { allow404: true });
   if (!realm) throw new Error(`realm ${args.realm} does not exist on ${kc.server}`);
   // Organisations must be on before the organization scope mapper is useful.
   if (!realm.organizationsEnabled && !dry) await kc.put('', { ...realm, organizationsEnabled: true });
   await applyScopes();
+  await applyRoles();
   const secrets = await applyClients();
   const flows = await applyFlows();
   await applySettings(flows);

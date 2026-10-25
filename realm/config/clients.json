@@ -4,27 +4,34 @@
     {
       "clientId": "civicos-portal",
       "name": "CivicOS Portal",
-      "url": "{{portalUrl}}"
+      "url": "{{portalUrl}}",
+      "backchannelUrl": "{{portalBackchannelUrl}}",
+      "erasure": false
     },
     {
       "clientId": "ocn-docs",
       "name": "CivicOS Docs",
-      "url": "{{docsUrl}}"
+      "url": "{{docsUrl}}",
+      "backchannelUrl": "{{docsBackchannelUrl}}"
     },
     {
       "clientId": "civicos-groups",
       "name": "CivicOS Groups",
-      "url": "{{groupsUrl}}"
+      "url": "{{groupsUrl}}",
+      "backchannelUrl": "{{groupsBackchannelUrl}}"
     },
     {
       "clientId": "civicos-discuss",
       "name": "CivicOS Discuss",
-      "url": "{{discussUrl}}"
+      "url": "{{discussUrl}}",
+      "backchannelUrl": "{{discussBackchannelUrl}}"
     },
     {
       "clientId": "civicos-committee",
       "name": "CivicOS Committees",
-      "url": "{{committeeUrl}}"
+      "url": "{{committeeUrl}}",
+      "backchannelUrl": "{{committeeBackchannelUrl}}",
+      "erasure": false
     }
   ],
   "productTemplate": {

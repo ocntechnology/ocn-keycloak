@@ -101,6 +101,12 @@ body.login-pf,
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--cvc-ink);
+  /* Break between words only: "authenticator" must never split as "authenticato / r". */
+  font-size: 1.6rem;
+  line-height: 1.2;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: manual;
 }
 
 /* Form fields — full-width PatternFly controls with a clear border */

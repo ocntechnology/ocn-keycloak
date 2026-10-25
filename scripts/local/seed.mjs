@@ -14,6 +14,11 @@ if (!/localhost|127\.0\.0\.1/.test(server)) {
   process.exit(1);
 }
 const seed = readJson(join(CONFIG, 'env', 'local-seed.json'));
+// Browser-facing addresses: realm ocn at its frontendUrl (auth.civicos.localhost), the fake council
+// IdP on a host of its own (sso.kingston.localhost), like a council's real Microsoft 365 sign-in.
+// Keycloak's own server-to-server calls (token, keys, user info) stay on `server`.
+const ocnPublic = (readJson(join(CONFIG, 'env', 'local.json')).frontendUrl || server).replace(/\/$/, '');
+const simPublic = (seed.councilSim.frontendUrl || server).replace(/\/$/, '');
 const kc = Admin.fromEnv('ocn');
 const sim = Admin.fromEnv(seed.councilSim.realm);
 
@@ -45,10 +50,31 @@ async function ensureUser(admin, { username, email, firstName, lastName }, passw
   return user;
 }
 
+// OCN staff must use an authenticator app. Local test staff get one with a known secret
+// (seed.staffTotp.secret; codes from scripts/local/totp.mjs) so tests sign in the real way.
+async function ensureTotp(user) {
+  const creds = (await kc.get(`/users/${user.id}/credentials`)) || [];
+  if (creds.some((c) => c.type === 'otp' && c.userLabel === seed.staffTotp.label)) return;
+  for (const c of creds.filter((x) => x.type === 'otp')) await kc.del(`/users/${user.id}/credentials/${c.id}`);
+  await kc.put(`/users/${user.id}`, {
+    credentials: [{
+      type: 'otp',
+      userLabel: seed.staffTotp.label,
+      secretData: JSON.stringify({ value: seed.staffTotp.secret }),
+      credentialData: JSON.stringify({ subType: 'totp', digits: 6, counter: 0, period: 30, algorithm: 'HmacSHA1' }),
+    }],
+  });
+  const fresh = await kc.get(`/users/${user.id}`);
+  const actions = (fresh.requiredActions || []).filter((a) => a !== 'CONFIGURE_TOTP');
+  if (actions.length !== (fresh.requiredActions || []).length) await kc.put(`/users/${user.id}`, { requiredActions: actions });
+  console.log(`authenticator app set up for ${user.email}`);
+}
+
 async function seedUsers() {
   const now = new Date().toISOString();
   for (const u of seed.users) {
     const user = await ensureUser(kc, u, seed.password, { civicosMailboxVerifiedAt: [now] });
+    if (u.totp) await ensureTotp(user);
     for (const role of u.realmRoles || []) {
       const r = await kc.get(`/roles/${encodeURIComponent(role)}`, { allow404: true });
       if (r) await kc.post(`/users/${user.id}/role-mappings/realm`, [r]);
@@ -70,6 +96,10 @@ async function seedCouncilSim() {
     await kc.req('POST', '', { realm: cfg.realm, enabled: true, displayName: cfg.displayName, loginTheme: 'keycloak.v2', sslRequired: 'none' });
     console.log(`realm ${cfg.realm} created`);
   }
+  const simRealm = await kc.req('GET', `/${cfg.realm}`);
+  if ((simRealm.attributes || {}).frontendUrl !== (simPublic === server ? '' : simPublic)) {
+    await kc.req('PUT', `/${cfg.realm}`, { ...simRealm, attributes: { ...(simRealm.attributes || {}), frontendUrl: simPublic === server ? '' : simPublic } });
+  }
   let client = await sim.client(cfg.clientId);
   const clientRep = {
     clientId: cfg.clientId,
@@ -78,7 +108,7 @@ async function seedCouncilSim() {
     publicClient: false,
     standardFlowEnabled: true,
     directAccessGrantsEnabled: false,
-    redirectUris: [`${server}/realms/ocn/broker/${cfg.idpAlias}/endpoint`],
+    redirectUris: [`${ocnPublic}/realms/ocn/broker/${cfg.idpAlias}/endpoint`, `${server}/realms/ocn/broker/${cfg.idpAlias}/endpoint`],
     attributes: { 'pkce.code.challenge.method': 'S256' },
   };
   if (!client) { await sim.post('/clients', clientRep); client = await sim.client(cfg.clientId); }
@@ -90,6 +120,7 @@ async function seedCouncilSim() {
   const flows = await kc.get('/authentication/flows');
   const has = (a) => flows.some((f) => f.alias === a);
   const base = `${server}/realms/${cfg.realm}/protocol/openid-connect`;
+  const pub = `${simPublic}/realms/${cfg.realm}/protocol/openid-connect`;
   const idp = {
     alias: cfg.idpAlias,
     displayName: cfg.idpDisplayName,
@@ -101,12 +132,12 @@ async function seedCouncilSim() {
     firstBrokerLoginFlowAlias: has('civicos-first-broker-login') ? 'civicos-first-broker-login' : 'first broker login',
     postBrokerLoginFlowAlias: has('civicos-post-broker-login') ? 'civicos-post-broker-login' : '',
     config: {
-      issuer: `${server}/realms/${cfg.realm}`,
-      authorizationUrl: `${base}/auth`,
+      issuer: `${simPublic}/realms/${cfg.realm}`,
+      authorizationUrl: `${pub}/auth`,
       tokenUrl: `${base}/token`,
       userInfoUrl: `${base}/userinfo`,
       jwksUrl: `${base}/certs`,
-      logoutUrl: `${base}/logout`,
+      logoutUrl: `${pub}/logout`,
       useJwksUrl: 'true',
       validateSignature: 'true',
       clientId: cfg.clientId,

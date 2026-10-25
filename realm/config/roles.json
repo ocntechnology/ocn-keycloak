@@ -1,0 +1,7 @@
+{
+  "$comment": "Realm roles applied by scripts/realm/apply.mjs. ocn-staff is the one definition of OCN staff that every CivicOS product reads (@civicos/auth isOcnStaff); Keycloak makes staff use an authenticator app, so a staff session is always level 2. ocn-admin includes it.",
+  "roles": [
+    { "name": "ocn-staff", "description": "OCN staff. Products let staff open any group, space or conversation, and record each time. Staff always sign in with a second step." },
+    { "name": "ocn-admin", "description": "OCN administrator (includes ocn-staff).", "composites": ["ocn-staff"] }
+  ]
+}
