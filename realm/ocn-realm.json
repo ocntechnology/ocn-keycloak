@@ -987,23 +987,13 @@
       "secret": "${OCN_CONSTITUTION_ADMIN_CLIENT_SECRET}",
       "redirectUris": [
         "https://constitution.opencouncil.network/tower-hamlets/admin/callback",
-        "http://localhost:8002/tower-hamlets/admin/callback",
-        "http://localhost:5001/tower-hamlets/admin/callback",
-        "http://localhost:8001/tower-hamlets/admin/callback",
         "https://cms.opencouncil.network",
-        "http://localhost:3002/*",
         "https://cms2.opencouncil.network/*",
-        "http://localhost:8001/*",
-        "https://cms.opencouncil.network/tower-hamlets/admin/callback",
-        "http://localhost:8002/*"
+        "https://cms.opencouncil.network/tower-hamlets/admin/callback"
       ],
       "webOrigins": [
-        "http://localhost:3002",
         "https://constitution.opencouncil.network",
-        "https://cms2.opencouncil.network",
-        "http://localhost:5001",
-        "http://localhost:8002",
-        "http://localhost:8001"
+        "https://cms2.opencouncil.network"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -1018,7 +1008,7 @@
       "attributes": {
         "request.object.signature.alg": "any",
         "frontchannel.logout.session.required": "true",
-        "post.logout.redirect.uris": "https://cms.opencouncil.network/tower-hamlets/admin/##http://localhost:5001/tower-hamlets/admin/##https://constitution.opencouncil.network/tower-hamlets/admin/##http://localhost:3002##https://cms2.opencouncil.network##http://localhost:8001##http://localhost:8002",
+        "post.logout.redirect.uris": "https://cms.opencouncil.network/tower-hamlets/admin/##https://constitution.opencouncil.network/tower-hamlets/admin/##https://cms2.opencouncil.network",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "true",

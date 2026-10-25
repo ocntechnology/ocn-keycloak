@@ -201,11 +201,14 @@ a:hover {
 #civicos-password-form .pf-v5-c-button,
 #civicos-code-form .pf-v5-c-button { white-space: normal; max-width: 100%; box-sizing: border-box; }
 /* Titles use the card's full width (no language column on CivicOS screens). */
-.pf-v5-c-login__main-header { grid-template-columns: 1fr; }
+.pf-v5-c-login__main-header, div.pf-v5-c-login__main-header { grid-template-columns: 1fr !important; }
 
 /* Wider card at desktop (the title "Set up your authenticator app" fits on one or two lines). */
 @media (min-width: 768px) {
-  .pf-v5-c-login__container { max-width: 32rem; grid-template-columns: minmax(0, 32rem); }
+  .pf-v5-c-login__container {
+    width: 100%; max-width: 32rem; grid-template-columns: 1fr !important; justify-content: stretch;
+    grid-template-areas: "header" "main" "footer" !important; padding-inline: 0 !important; column-gap: 0 !important;
+  }
   .pf-v5-c-login__main { width: 100%; max-width: 32rem; }
 }
 #kc-page-title, .pf-v5-c-login__main-header .pf-v5-c-title { max-width: none; }
@@ -217,8 +220,7 @@ a:hover {
 .pf-v5-c-form-control.pf-m-error input,
 input[aria-invalid='true'] { border-color: #d4351c !important; }
 
-/* Never wider than the screen (no sideways scroll at 390 wide). */
-html, body { overflow-x: hidden; }
+/* Never wider than the screen (no sideways scroll at 390 wide): the stock restart tooltip is gone. */
 .kc-tooltip-text { display: none !important; }
 
 /* Authenticator set-up steps and the manual key. */
