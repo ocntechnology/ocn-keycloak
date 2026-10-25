@@ -85,7 +85,7 @@ export function productClient(p, template) {
   c.attributes = {
     ...c.attributes,
     'post.logout.redirect.uris': `${url}/*`,
-    'backchannel.logout.url': `${url}/api/auth/backchannel-logout`,
+    'backchannel.logout.url': `${url}/api/auth/civicos/backchannel-logout`,
   };
   return c;
 }

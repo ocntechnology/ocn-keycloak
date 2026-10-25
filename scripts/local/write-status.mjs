@@ -64,7 +64,35 @@ Organisations (Keycloak Organizations, synced from the council registry): ${seed
 
 ## @civicos/auth
 
-Pin to the \`civicos\` repo branch \`feat/identity-platform\`, commit **${sha}**.
+Pin to the \`civicos\` repo branch \`feat/identity-platform\`, commit **${sha}**:
+
+\`\`\`json
+"@civicos/auth": "https://github.com/ocntechnology/civicos.git#${sha}&path:/packages/auth"
+\`\`\`
+
+Wiring (see \`packages/auth/src/next.ts\` and \`docs/identity.md\` in that commit):
+
+\`\`\`ts
+// auth.ts
+import NextAuth from "next-auth";
+import { civicosAuthConfig } from "@civicos/auth/next";
+export const { handlers, auth, signIn, signOut } = NextAuth(civicosAuthConfig());
+
+// app/api/auth/[...nextauth]/route.ts
+import { handlers } from "@/auth";
+export const { GET, POST } = handlers;
+
+// app/api/auth/civicos/[action]/route.ts: step-up, silent sign-in for iframes, back-channel logout
+import { createCivicosAuthRoutes } from "@civicos/auth/next";
+import { signIn } from "@/auth";
+export const { GET, POST } = createCivicosAuthRoutes({ signIn });
+\`\`\`
+
+- \`civicosSession(await auth())\` gives \`{ sub, email, name, level, method, organisation, organisations, roles }\` or null (signed out, or the Keycloak session ended).
+- \`requireLevel(session, 2, { signIn, returnTo })\` steps the person up (Keycloak \`acr_values=2\`).
+- Embedded iframe: send a signed-out request to \`/api/auth/civicos/silent?returnTo=/embed/...\` (prompt=none; falls back to a sign-in button that opens a popup).
+- Env: \`AUTH_KEYCLOAK_ISSUER=${server}/realms/ocn\`, \`AUTH_KEYCLOAK_ID\`, \`AUTH_KEYCLOAK_SECRET\`, \`AUTH_SECRET\`.
+- CI: \`assertConformance(process.cwd())\` from \`@civicos/auth/conformance\`.
 
 ## Start and stop
 
