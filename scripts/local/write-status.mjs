@@ -39,6 +39,8 @@ Keycloak and Mailpit are shared by every local agent. **Do not start your own Ke
 | Mailpit web UI / API | http://localhost:8025 (API: http://localhost:8025/api/v1/messages) |
 | Mailpit SMTP | localhost:1025 (no auth, no TLS) |
 | Postgres database | \`keycloak_local\` on postgresql://toby@localhost:5432 |
+| Council directory and registry (civicos \`apps/directory\`, worktree \`~/Repositories/civicos-identity\`) | http://localhost:3100 (when running) |
+| Portal (civicos \`apps/portal\`, Sign-in settings at /settings/sign-in) | ${env.portalUrl} (when running; 3110 is taken on this Mac) |
 
 CivicOS sign-in policy extension installed: **${extension ? 'yes' : 'not yet (stock Keycloak password form for now)'}**.
 
@@ -93,6 +95,14 @@ export const { GET, POST } = createCivicosAuthRoutes({ signIn });
 - Embedded iframe: send a signed-out request to \`/api/auth/civicos/silent?returnTo=/embed/...\` (prompt=none; falls back to a sign-in button that opens a popup).
 - Env: \`AUTH_KEYCLOAK_ISSUER=${server}/realms/ocn\`, \`AUTH_KEYCLOAK_ID\`, \`AUTH_KEYCLOAK_SECRET\`, \`AUTH_SECRET\`.
 - CI: \`assertConformance(process.cwd())\` from \`@civicos/auth/conformance\`.
+
+## Directory (council registry) for products
+
+Local directory tokens (\`Authorization: Bearer <token>\`): \`local-groups-token\`, \`local-discuss-token\`, \`local-docs-token\` (write scope), \`local-portal-token\` (admin).
+
+- \`GET /api/registry/lookup?email=<email>\`: the organisation(s) for an email, \`personal: true\` for Gmail and the like.
+- \`GET /api/registry/organisations?q=\`: search councils and organisations (382 UK councils plus OCN, LGA, London Councils, GLA).
+- \`POST /api/sign-in\` \`{ sub, email, emailVerified, name }\`: record a sign-in; creates the person and a basic membership the first time.
 
 ## Start and stop
 
