@@ -103,7 +103,7 @@ Sign-in settings) lives in the `civicos` monorepo: see its `docs/identity.md`.
 | `realm/config/roles.json` | Realm roles: `ocn-staff`, and `ocn-admin` including it |
 | `realm/config/client-scopes.json` | `organization` scope: organisation claim and the `civicos_method` claim |
 | `realm/config/flows.json` | `civicos-browser`, `civicos-first-broker-login`, `civicos-post-broker-login`, `civicos-reset-credentials`, `civicos-direct-grant-refused` (with execution config, such as `force-login`) |
-| `realm/config/env/{local,production}.json` | Per-environment URLs and SMTP |
+| `realm/config/env/{local,production}.json` | Per-environment URLs and SMTP (production sends through SES `eu-west-2`, London) |
 | `realm/config/env/local-seed.json` | Local only: organisations before the registry sync, test users, the staff test authenticator's secret, the fake council IdP and its host |
 | `realm/civicos-password-blocklist.txt` | 515,983 common and breached passwords of 12 to 128 characters (NCSC top 100,000 plus the 10 million passwords list; see `civicos-password-blocklist.SOURCES.txt`), loaded once at start-up |
 | `realm/config/client-policies.json` | Client policy `civicos-session-rules`: the session rules at every token refresh |
