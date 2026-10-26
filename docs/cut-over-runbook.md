@@ -30,7 +30,13 @@ Every production step needs Toby's go-ahead.
    `idp.opencouncil.network`. Keycloak must answer on both hostnames (run without a fixed
    `hostname`, or with `hostname-strict=false`), so old and new issuers both work during the
    migration: a request that arrives on a host gets that host's issuer only while `frontendUrl`
-   is unset.
+   is unset. **Today `deploy/keycloak.conf.template` sets `hostname={{ IDP_DOMAIN }}`**, which
+   fixes the issuer to `idp.opencouncil.network` whatever host a request arrives on. So for the
+   two-hostname migration, change the template first (remove `hostname=`, add
+   `hostname-strict=false`, keep `proxy-headers=xforwarded`) and deploy that on its own,
+   checking that `https://idp.opencouncil.network/realms/ocn/.well-known/openid-configuration`
+   still shows the old issuer. The alternative is one window in which every product's issuer
+   (CMS `keycloak.json`, Committees, portal, Docs) moves together with `frontendUrl`.
 4. **List every client and who owns it**: `cms`, `cms-admin`, `ocn-constitution-admin`,
    `civicos-committee`, then the CivicOS products. For each, note the issuer and redirect URIs
    it is configured with today.
@@ -38,7 +44,20 @@ Every production step needs Toby's go-ahead.
    (`https://cms2.opencouncil.network/*`) on. `drift.mjs` reports these. Decide with its owner
    whether it is still used; retire it, or move it to code + PKCE with exact redirect URIs,
    before the cut-over. (The localhost entries were removed from the export in the repo; the
-   live client is unchanged.)
+   live client is unchanged.) Its live use (ocn-constitution `auth_service.py`) is code + PKCE
+   and userinfo, so it needs none of those.
+6. **Existing sessions end at the apply.** The `civicos-session-rules` client policy refuses a
+   refresh whose mailbox check is older than 30 days, and no existing session has one, so every
+   signed-in person is signed out within about 5 minutes of the apply and the next sign-in needs
+   an email code. SES must work first, and accounts with a personal address (gmail and the
+   like), a bare username or no email cannot sign in afterwards: list them first.
+7. **`ocn-admin` gains `ocn-staff`** (roles.json makes it composite). Everyone who holds
+   `ocn-admin` becomes OCN staff in every product, always with a second step. Check who holds it.
+8. **The `saml` identity provider**: first broker login moves to `civicos-first-broker-login`,
+   which refuses new links from an IdP with no organisation. Confirm it is unused.
+9. **Docs legacy admin** signs in through `civicos-portal`; its callback
+   (`https://docs.ocn.technology/api/auth/callback/keycloak`) is kept in `clients.json` until Docs
+   runs `DOCS_ADMIN_MODE=civicos`.
 
 ## Migration (both hostnames)
 
