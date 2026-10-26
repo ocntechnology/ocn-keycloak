@@ -296,16 +296,22 @@ jobs:
           # Create tarball with only Keycloak files
           echo "Creating tarball..."
           if [ "$DIST_DIR" = "/tmp" ]; then
-            # Only include Keycloak directories and files
+            # Only include Keycloak directories and files. data/password-blacklists holds the
+            # blocklist the realm's password policy names: without it apply.mjs cannot update
+            # the realm settings (500 "Password blacklist ... not found").
             cd "$DIST_DIR"
             tar czf "$TARBALL" \
-              bin conf lib providers themes \
+              bin conf lib providers themes data/password-blacklists \
               *.jar *.properties LICENSE.txt README.md 2>/dev/null || \
-            tar czf "$TARBALL" bin conf lib providers themes 2>/dev/null
+            tar czf "$TARBALL" bin conf lib providers themes data/password-blacklists 2>/dev/null
           else
             # Include everything from the distribution directory
             cd "$DIST_DIR"
             tar czf "$TARBALL" .
+          fi
+          if ! tar tzf "$TARBALL" | grep -q 'data/password-blacklists/civicos-password-blocklist.txt$'; then
+            echo "::error::the tarball has no data/password-blacklists/civicos-password-blocklist.txt"
+            exit 1
           fi
           
           # Show tarball size

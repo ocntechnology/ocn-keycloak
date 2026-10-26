@@ -169,6 +169,7 @@ realm config is applied.
 ```bash
 cd extension && mvn test                                              # 20 unit tests
 node --test --test-concurrency=1 tests/integration/*.test.mjs         # 42 integration tests (local Keycloak)
+node --test tests/deploy/*.test.mjs                                   # deploy workflow ships the JAR and the password blocklist
 ```
 
 The integration tests drive the real login pages over HTTP (on the public hosts, through
