@@ -20,14 +20,9 @@ Every production step needs Toby's go-ahead.
 
 ## Before the day
 
-1. **SMTP.** Mail is sent through SES in `eu-west-2` (London), OCN's AWS account, where the
-   domain identity `ocn.technology` is verified (Easy DKIM, MAIL FROM `mail.ocn.technology`) and
-   the account must be out of the SES sandbox before the day (production access requested 26
-   October 2026). Create SMTP credentials in `eu-west-2` (SES SMTP passwords are derived per
-   region, so `eu-west-1` credentials do not work) and put them in the deploy secrets as
-   `SMTP_USER` / `SMTP_PASSWORD`; `realm/config/env/production.json` sends to
-   `email-smtp.eu-west-2.amazonaws.com:465`. After the deploy, the Keycloak log must show
-   `CivicOS SMTP check: realm ocn can reach email-smtp.eu-west-2.amazonaws.com:465 and log in`;
+1. **SMTP.** Verify `no-reply@ocn.technology` in SES (eu-west-1) and create SMTP credentials.
+   Put them in the deploy secrets as `SMTP_USER` / `SMTP_PASSWORD`. After the deploy, the
+   Keycloak log must show `CivicOS SMTP check: realm ocn can reach email-smtp... and log in`;
    an ERROR `CivicOS SMTP check FAILED` means codes and reset links will not be sent.
 2. **Admin service account** for `apply.mjs` and `drift.mjs` in realm `ocn` (client credentials,
    realm-management roles as `civicos-registry-sync` has). Store as `KC_ADMIN_CLIENT_ID` /

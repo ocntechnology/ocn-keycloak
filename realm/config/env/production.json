@@ -1,7 +1,7 @@
 {
   "frontendUrl": "",
   "smtp": {
-    "host": "email-smtp.eu-west-2.amazonaws.com",
+    "host": "email-smtp.eu-west-1.amazonaws.com",
     "port": "465",
     "from": "no-reply@ocn.technology",
     "fromDisplayName": "CivicOS",
