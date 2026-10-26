@@ -156,8 +156,17 @@ Every production step needs Toby's go-ahead.
    `https://auth.ocn.technology` in `realm/config/env/production.json` and apply it, and put a
    fixed `hostname=https://auth.ocn.technology` back in `deploy/keycloak.conf.template` (remove
    `hostname-strict=false`). From then on the issuer no longer depends on the request's host.
+   Done by the PR that does both (it is based on #9, so the one merge to `main` deploys both and
+   Keycloak restarts once); civicos-local `scripts/release/f1-retire-old-host.sh apply` merges it,
+   waits for the deploy and /health/ready, then runs `apply.mjs` and `drift.mjs` with
+   `KC_SERVER=https://auth.ocn.technology`. A fixed `hostname` applies to every realm on the
+   server (`master` too), so the admin console moves to `https://auth.ocn.technology/admin`.
 4. Keep `idp.opencouncil.network` resolving for at least a month, redirecting browsers to the new
    host, then retire it.
+   The redirect is a host rule on the load balancer's URL map `cr-url-map-keycloak`:
+   `idp.opencouncil.network` goes to a path matcher whose `defaultUrlRedirect` sends a 308 (method
+   and body kept, query kept) to `auth.ocn.technology` (`f1-retire-old-host.sh redirect`). Keep the
+   `cr-cert-keycloak` certificate on the proxy while the redirect is in place.
 
 ## Apply the realm and deploy in one job
 

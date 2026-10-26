@@ -1,12 +1,11 @@
 # Keycloak Configuration
 # Generated automatically during deployment
 
-# Hostname: none fixed during the move from idp.opencouncil.network to auth.ocn.technology.
-# Keycloak builds the issuer, links and redirects from the host each request arrived on, so both
-# hosts work at once (docs/cut-over-runbook.md). This is only safe because the load balancer
-# passes nothing but those two hosts to Keycloak (runbook: load balancer host allowlist).
-# Step F1 puts a fixed hostname back once every product uses auth.ocn.technology.
-hostname-strict=false
+# Hostname: fixed to auth.ocn.technology (release step F1). Every issuer, link and redirect is
+# built from it, whatever host a request arrived on; hostname-strict is on (the default).
+# idp.opencouncil.network is redirected to it by the load balancer (URL map cr-url-map-keycloak).
+# During the move both hosts were served with no fixed hostname (docs/cut-over-runbook.md).
+hostname=https://auth.ocn.technology
 
 # HTTP Configuration (behind load balancer)
 http-enabled=true
