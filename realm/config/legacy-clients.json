@@ -1,0 +1,36 @@
+{
+  "$comment": "One-off tightening of live clients that apply.mjs does not manage (they belong to products outside this repo). Applied only by scripts/realm/legacy-clients.mjs with an explicit flag per change, after a --dry-run. 'set' fields and attributes are written exactly; 'remove' takes the listed entries out of the live lists and leaves the rest alone. Release checklist step A4; background in civicos-local docs/ocn-constitution-admin-client.md (review ID-4).",
+  "changes": {
+    "constitution-admin": {
+      "clientId": "ocn-constitution-admin",
+      "why": "Public constitution site admin sign-in (ocn-constitution auth_service.py): code + PKCE + userinfo only. Turn off implicit flow and password grants, list the admin callbacks exactly, drop the cms.opencouncil.network and cms2 entries. The site builds the callback from the host the request arrived on (only its platform hosts, src/config/dns.py), and its Render service has two custom domains: constitution.opencouncil.network and constitution.ocn.technology. Tower Hamlets is the only council (/api/councils, 26 October 2026): add a council's two callbacks here before it gets an admin.",
+      "set": {
+        "publicClient": false,
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": false,
+        "redirectUris": [
+          "https://constitution.opencouncil.network/tower-hamlets/admin/callback",
+          "https://constitution.ocn.technology/tower-hamlets/admin/callback"
+        ],
+        "webOrigins": [
+          "https://constitution.opencouncil.network",
+          "https://constitution.ocn.technology"
+        ],
+        "attributes": {
+          "pkce.code.challenge.method": "S256",
+          "post.logout.redirect.uris": "https://constitution.opencouncil.network/tower-hamlets/admin/##https://constitution.ocn.technology/tower-hamlets/admin/"
+        }
+      }
+    },
+    "cms-localhost": {
+      "clientId": "cms",
+      "why": "Constitution editor: production never signs in from http://localhost:3002, so take it out of the live client (redirect, web origin and post-logout redirect). The whole-origin wildcards stay (realm/config/drift-exceptions.json, ocntechnology/ocn-keycloak#7).",
+      "remove": {
+        "redirectUris": ["http://localhost:3002/*"],
+        "webOrigins": ["http://localhost:3002"],
+        "post.logout.redirect.uris": ["http://localhost:3002"]
+      }
+    }
+  }
+}

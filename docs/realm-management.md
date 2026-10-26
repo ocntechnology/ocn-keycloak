@@ -91,7 +91,10 @@ After applying, re-export + re-sanitise so the snapshot reflects reality.
 
 - `bruteForceProtected: false`: no brute-force lockout on the realm.
 - `ocn-constitution-admin` has a sprawling redirect-URI list (mixes cms / cms2 /
-  constitution hosts + several localhost ports + loose bare-origin entries): tighten.
+  constitution hosts + several localhost ports + loose bare-origin entries), implicit flow and
+  password grants: tightened by `node scripts/realm/legacy-clients.mjs --constitution-admin`
+  (exact values in `realm/config/legacy-clients.json`; `--dry-run` first; see
+  `docs/cut-over-runbook.md`). `--cms-localhost` removes `http://localhost:3002` from `cms`.
 - Stale `cms2.opencouncil.network` / `cms.opencouncil.network` redirect and post-logout
   URIs linger on `cms`; the CMS lives at `cms.ocn.technology` (the old host is a dead
   load balancer). `cms-admin` still has the old host as its root/base URL.
