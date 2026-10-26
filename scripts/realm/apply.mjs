@@ -227,7 +227,9 @@ async function applySettings(appliedFlows) {
       want[key] = live[key] || fallback;
     }
   }
-  if (want.attributes && want.attributes.frontendUrl === '') want.attributes.frontendUrl = '';
+  // An empty frontendUrl is sent as '' on purpose: it overwrites (clears) a value set earlier, so
+  // the issuer follows the host each request arrived on (the two-hostname transition). Leaving the
+  // key out would keep whatever the live realm had. drift.mjs treats '' and unset as the same.
   log('update realm settings');
   if (!dry) await kc.put('', { ...live, ...want, attributes: { ...live.attributes, ...want.attributes } });
   if (profileAttrs.length) await applyUserProfile(profileAttrs);

@@ -1,5 +1,5 @@
 {
-  "frontendUrl": "https://auth.ocn.technology",
+  "frontendUrl": "",
   "smtp": {
     "host": "email-smtp.eu-west-1.amazonaws.com",
     "port": "465",
@@ -23,5 +23,6 @@
   "discussBackchannelUrl": "https://discuss.ocn.technology",
   "committeeBackchannelUrl": "https://committees.ocn.technology",
   "directoryBackchannelUrl": "https://directory.ocn.technology",
-  "sslRequired": "external"
+  "sslRequired": "external",
+  "$comment": "frontendUrl is empty while Keycloak answers on both idp.opencouncil.network and auth.ocn.technology: each request gets the issuer of the host it arrived on (deploy/keycloak.conf.template has no fixed hostname). Step F1 of the release sets it to https://auth.ocn.technology once every product uses the new host (docs/cut-over-runbook.md)."
 }
