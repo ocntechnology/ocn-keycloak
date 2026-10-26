@@ -151,8 +151,8 @@ jobs:
             DB_URL="jdbc:postgresql://localhost:5432/${{ vars.KEYCLOAK_DB_NAME }}?cloudSqlInstance=${{ vars.GCP_PROJECT_ID }}:${{ vars.DB_REGION }}:${{ vars.DB_INSTANCE_NAME }}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
           fi
           
-          # Substitute template variables. IDP_DOMAIN is not in the template while Keycloak
-          # answers on both hostnames (no fixed hostname until step F1); the line is kept for then.
+          # Substitute template variables. The template fixes hostname=https://auth.ocn.technology
+          # itself (step F1); vars.IDP_DOMAIN is no longer used and its line matches nothing.
           sed -e "s|{{ IDP_DOMAIN }}|${{ vars.IDP_DOMAIN }}|g" \
               -e "s|{{ KEYCLOAK_ADMIN }}|${{ vars.KEYCLOAK_ADMIN }}|g" \
               -e "s|{{ KEYCLOAK_ADMIN_PASSWORD }}|${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}|g" \

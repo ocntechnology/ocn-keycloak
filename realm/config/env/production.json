@@ -1,5 +1,5 @@
 {
-  "frontendUrl": "",
+  "frontendUrl": "https://auth.ocn.technology",
   "smtp": {
     "host": "email-smtp.eu-west-1.amazonaws.com",
     "port": "465",
@@ -25,5 +25,5 @@
   "directoryBackchannelUrl": "https://directory.ocn.technology",
   "sslRequired": "external",
   "$smtpComment": "Interim (Toby, 26 October 2026): mail goes through the existing SES account the live realm uses today (eu-west-1, opencouncil.network verified there), from admin@opencouncil.network, as today. Implicit TLS on 465 (ssl true, starttls false) is what the live realm does with no port set. Apply WITHOUT SMTP_USER/SMTP_PASSWORD: apply.mjs then keeps the user and password the live realm stores (mergeSmtpCredentials). The move to OCN's own account in eu-west-2, from ocn.technology, waits for SES production access there.",
-  "$comment": "frontendUrl is empty while Keycloak answers on both idp.opencouncil.network and auth.ocn.technology: each request gets the issuer of the host it arrived on (deploy/keycloak.conf.template has no fixed hostname). Step F1 of the release sets it to https://auth.ocn.technology once every product uses the new host (docs/cut-over-runbook.md)."
+  "$comment": "frontendUrl is https://auth.ocn.technology since release step F1, matching the fixed hostname in deploy/keycloak.conf.template. During the move it was empty, so each request got the issuer of the host it arrived on (docs/cut-over-runbook.md)."
 }
