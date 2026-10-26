@@ -104,17 +104,29 @@ jobs:
           echo "Custom themes copied successfully"
           ls -la "$DIST_DIR/themes/"
 
-      - name: Set up Java 21 for the CivicOS extension
+      # The VM runs Debian's OpenJDK 17 (no openjdk-21 package there), so the extension is
+      # compiled with --release 17 (extension/pom.xml) and its unit tests run on 17 here too.
+      - name: Set up Java 17 for the CivicOS extension
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "17"
           cache: maven
 
       - name: Build CivicOS sign-in policy extension (with unit tests) and the password blocklist
         run: |
           DIST_DIR="${{ env.DIST_DIR }}"
           (cd extension && mvn -B -q package)
+          # Fail here, not on the VM, if any class needs a Java newer than 17 (class file 61).
+          NEWER=$(unzip -Z1 extension/target/civicos-signin-policy.jar '*.class' | while read -r C; do
+            V=$(unzip -p extension/target/civicos-signin-policy.jar "$C" | od -An -j6 -N2 -tu1 | awk 'NF {print $1*256+$2}')
+            [ "$V" -gt 61 ] && echo "$C (class file $V)"
+          done || true)
+          if [ -n "$NEWER" ]; then
+            echo "::error::the extension has classes newer than Java 17 (class file 61):"
+            echo "$NEWER"
+            exit 1
+          fi
           mkdir -p "$DIST_DIR/providers" "$DIST_DIR/data/password-blacklists"
           cp extension/target/civicos-signin-policy.jar "$DIST_DIR/providers/"
           cp realm/civicos-password-blocklist.txt "$DIST_DIR/data/password-blacklists/"
@@ -346,7 +358,7 @@ jobs:
         run: |
           ssh kc "
               if ! command -v java &> /dev/null; then
-                echo 'Java not found, installing OpenJDK 21...'
+                echo 'Java not found, installing default-jdk (OpenJDK 17 on this Debian)...'
                 sudo apt-get update -qq
                 sudo apt-get install -y -qq default-jdk
                 echo 'Java installed successfully'
@@ -383,6 +395,26 @@ jobs:
               echo \"Systemd service file created successfully\"
             "
 
+      # kc.sh build again on the VM, with the VM's own Java, from the conf and providers now on
+      # disk. The runner's build is not enough: copying the distribution gives the provider JAR
+      # a new mtime, and `kc.sh start --optimized` then refuses to start ("A provider JAR was
+      # updated since the last build"). Building here also fails the deploy before the start if
+      # the JAR does not load on the VM's Java (26 October 2026: a Java 21 JAR on Java 17).
+      # The build-time options (db=postgres, health-enabled, metrics-enabled) come from
+      # conf/keycloak.conf, as on the runner.
+      - name: Build Keycloak on the VM
+        run: |
+          ssh kc "
+              set -e
+              cd /opt/keycloak
+              JAVA_HOME=\$(readlink -f \$(which java) | sed 's|/bin/java||')
+              echo \"Building with \$JAVA_HOME\"
+              \$JAVA_HOME/bin/java -version
+              sudo env JAVA_HOME=\"\$JAVA_HOME\" PATH=\"\$JAVA_HOME/bin:\$PATH\" bin/kc.sh build
+              sudo chmod -R 777 /opt/keycloak
+              echo 'Keycloak build on the VM completed'
+            "
+
       - name: Enable and start Keycloak service
         run: |
           ssh kc "
@@ -400,42 +432,51 @@ jobs:
 
       - name: Verify Keycloak is running
         run: |
+          # With Restart=on-failure a crash-looping Keycloak is "active" for a moment on every
+          # restart, so the service state alone can pass a broken deploy. Ready means: active,
+          # and /health/ready (management port 9000, health-enabled=true) answers.
+          show_logs() {
+            echo "Service status:"
+            ssh kc "sudo systemctl status keycloak --no-pager -l" || true
+            echo ""
+            echo "Last 50 journal lines:"
+            ssh kc "sudo journalctl -u keycloak -n 50 --no-pager" || true
+          }
+
           echo "Waiting for Keycloak to start..."
           sleep 15
 
-          # Check service status multiple times
-          for i in {1..6}; do
+          for i in {1..12}; do
             echo "Checking attempt $i..."
 
-            # Get service state using systemctl show (more reliable)
-            STATUS=$(ssh kc "sudo systemctl show -p ActiveState --value keycloak" 2>/dev/null | tr -d '\r\n')
-
+            STATUS=$(ssh kc "sudo systemctl show -p ActiveState --value keycloak" 2>/dev/null | tr -d '\r\n' || true)
             echo "Service state: $STATUS"
 
-            if [ "$STATUS" = "active" ]; then
-              echo "✓ Keycloak service is active and running"
-              ssh kc "sudo systemctl status keycloak --no-pager -l"
-              exit 0
-            elif [ "$STATUS" = "failed" ]; then
+            if [ "$STATUS" = "failed" ]; then
               echo "✗ Keycloak service failed to start"
-              echo "Service status:"
-              ssh kc "sudo systemctl status keycloak --no-pager -l"
-              echo ""
-              echo "Service logs:"
-              ssh kc "sudo journalctl -u keycloak -n 50 --no-pager"
+              show_logs
               exit 1
             fi
 
-            if [ $i -lt 6 ]; then
+            if [ "$STATUS" = "active" ]; then
+              if ssh kc "command -v curl >/dev/null || exit 2; curl -fsS -m 5 http://localhost:9000/health/ready"; then
+                echo ""
+                echo "✓ Keycloak service is active and ready"
+                ssh kc "sudo systemctl status keycloak --no-pager -l"
+                exit 0
+              elif [ $? -eq 2 ]; then
+                echo "curl is not installed on the VM: relying on the service state"
+                echo "✓ Keycloak service is active"
+                ssh kc "sudo systemctl status keycloak --no-pager -l"
+                exit 0
+              fi
+            fi
+
+            if [ $i -lt 12 ]; then
               sleep 10
             fi
           done
 
-          echo "Keycloak did not start within expected time"
-          echo "Service status:"
-          ssh kc "sudo systemctl status keycloak --no-pager -l"
-          echo ""
-          echo "Service logs:"
-          ssh kc "sudo journalctl -u keycloak -n 100 --no-pager"
+          echo "✗ Keycloak was not ready within the expected time"
+          show_logs
           exit 1
-
