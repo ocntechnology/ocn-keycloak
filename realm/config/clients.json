@@ -6,7 +6,9 @@
       "name": "CivicOS Portal",
       "url": "{{portalUrl}}",
       "backchannelUrl": "{{portalBackchannelUrl}}",
-      "erasure": false
+      "erasure": false,
+      "$extraRedirectUris": "OCN Docs in DOCS_ADMIN_MODE=legacy signs its admin in through civicos-portal (civicos-docs render.yaml). Keep this until Docs runs DOCS_ADMIN_MODE=civicos on client ocn-docs, then remove it.",
+      "extraRedirectUris": ["{{docsUrl}}/api/auth/callback/keycloak"]
     },
     {
       "clientId": "ocn-docs",
