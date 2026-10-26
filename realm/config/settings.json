@@ -1,0 +1,121 @@
+{
+  "$comment": "Realm settings applied by scripts/realm/apply.mjs. Values in {{double braces}} come from realm/config/env/<env>.json. eventsListeners: civicos-erasure tells products when an account is deleted. Events (sign-ins, resets, authenticator changes, refusals) and admin events are stored for 400 days. civicos.* attributes are the CivicOS limits (seconds or counts) read by the extension; tests shorten some for a few seconds and put them back.",
+  "displayName": "CivicOS",
+  "loginTheme": "ocn",
+  "emailTheme": "keycloak",
+  "organizationsEnabled": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "passwordPolicy": "length(12) and maxLength(128) and notUsername and notEmail and notContainsUsername and passwordBlacklist(civicos-password-blocklist.txt)",
+  "bruteForceProtected": true,
+  "bruteForceStrategy": "MULTIPLE",
+  "permanentLockout": false,
+  "failureFactor": 10,
+  "waitIncrementSeconds": 900,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "ssoSessionIdleTimeout": 2592000,
+  "ssoSessionMaxLifespan": 2592000,
+  "accessTokenLifespan": 300,
+  "browserFlow": "civicos-browser",
+  "firstBrokerLoginFlow": "civicos-first-broker-login",
+  "resetCredentialsFlow": "civicos-reset-credentials",
+  "directGrantFlow": "civicos-direct-grant-refused",
+  "smtpServer": "{{smtp}}",
+  "attributes": {
+    "frontendUrl": "{{frontendUrl}}",
+    "acr.loa.map": "{\"1\":1,\"2\":2}",
+    "adminEventsExpiration": "34560000",
+    "civicos.ssoSessionMaxSeconds": "43200",
+    "civicos.mailboxMaxAgeSeconds": "2592000",
+    "civicos.codes.per15Minutes": "3",
+    "civicos.codes.perDay": "10",
+    "civicos.codes.wrongBeforeLock": "10",
+    "civicos.codes.lockSeconds": "900",
+    "civicos.erasure.retryBaseSeconds": "60"
+  },
+  "userProfileAttributes": [
+    {
+      "name": "email",
+      "permissions": {
+        "view": [
+          "admin",
+          "user"
+        ],
+        "edit": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "civicosMailboxVerifiedAt",
+      "displayName": "Mailbox last verified (CivicOS)",
+      "permissions": {
+        "view": [
+          "admin"
+        ],
+        "edit": [
+          "admin"
+        ]
+      },
+      "multivalued": false,
+      "annotations": {}
+    },
+    {
+      "name": "civicosLastSignInMethod",
+      "displayName": "Last sign-in method (CivicOS)",
+      "permissions": {
+        "view": [
+          "admin"
+        ],
+        "edit": [
+          "admin"
+        ]
+      },
+      "multivalued": false,
+      "annotations": {}
+    }
+  ],
+  "displayNameHtml": "CivicOS",
+  "eventsListeners": [
+    "jboss-logging",
+    "civicos-erasure"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
+  "sslRequired": "{{sslRequired}}",
+  "eventsEnabled": true,
+  "eventsExpiration": 34560000,
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "RESET_PASSWORD",
+    "RESET_PASSWORD_ERROR",
+    "SEND_RESET_PASSWORD",
+    "SEND_RESET_PASSWORD_ERROR",
+    "UPDATE_PASSWORD",
+    "UPDATE_PASSWORD_ERROR",
+    "UPDATE_EMAIL",
+    "UPDATE_EMAIL_ERROR",
+    "UPDATE_PROFILE",
+    "UPDATE_TOTP",
+    "REMOVE_TOTP",
+    "UPDATE_CREDENTIAL",
+    "REMOVE_CREDENTIAL",
+    "CODE_TO_TOKEN",
+    "CODE_TO_TOKEN_ERROR",
+    "REFRESH_TOKEN_ERROR",
+    "DELETE_ACCOUNT",
+    "IDENTITY_PROVIDER_LOGIN",
+    "IDENTITY_PROVIDER_LOGIN_ERROR",
+    "IDENTITY_PROVIDER_FIRST_LOGIN",
+    "CLIENT_LOGIN_ERROR"
+  ]
+}

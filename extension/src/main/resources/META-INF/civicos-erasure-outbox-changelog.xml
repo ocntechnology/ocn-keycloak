@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <!-- CivicOS: pending account-erasure notices (ErasureOutboxEntity). -->
+    <changeSet author="civicos" id="civicos-erasure-outbox-1">
+        <createTable tableName="CIVICOS_ERASURE_OUTBOX">
+            <column name="ID" type="VARCHAR(36)"><constraints nullable="false" primaryKey="true" primaryKeyName="PK_CIVICOS_ERASURE_OUTBOX"/></column>
+            <column name="REALM_ID" type="VARCHAR(36)"><constraints nullable="false"/></column>
+            <column name="CLIENT_ID" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="URL" type="VARCHAR(1024)"><constraints nullable="false"/></column>
+            <column name="USER_ID" type="VARCHAR(36)"><constraints nullable="false"/></column>
+            <column name="REASON" type="VARCHAR(255)"/>
+            <column name="ISSUER" type="VARCHAR(1024)"><constraints nullable="false"/></column>
+            <column name="CREATED" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="NEXT_ATTEMPT" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="ATTEMPTS" type="INT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+            <column name="FAILED" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="LAST_ERROR" type="VARCHAR(1024)"/>
+        </createTable>
+        <createIndex tableName="CIVICOS_ERASURE_OUTBOX" indexName="IDX_CIVICOS_ERASURE_DUE">
+            <column name="FAILED"/>
+            <column name="NEXT_ATTEMPT"/>
+        </createIndex>
+    </changeSet>
+    <!-- The person's email, so products can also erase rows that were pushed by email only. -->
+    <changeSet author="civicos" id="civicos-erasure-outbox-2">
+        <addColumn tableName="CIVICOS_ERASURE_OUTBOX">
+            <column name="EMAIL" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

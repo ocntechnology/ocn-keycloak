@@ -1,0 +1,30 @@
+name: Realm drift (nightly)
+
+# Compares the production realm ocn with realm/config and fails (exit 2) on any difference,
+# including client rules (no password grants, PKCE S256, no wildcard redirects, no implicit flow).
+# Needs repository secrets KC_SERVER, KC_ADMIN_CLIENT_ID and KC_ADMIN_CLIENT_SECRET (a service
+# account in realm ocn with view-realm, view-clients and view-users). See docs/cut-over-runbook.md.
+
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    if: ${{ vars.REALM_DRIFT_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v5.0.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare production realm with realm/config
+        env:
+          KC_SERVER: ${{ secrets.KC_SERVER }}
+          KC_ADMIN_CLIENT_ID: ${{ secrets.KC_ADMIN_CLIENT_ID }}
+          KC_ADMIN_CLIENT_SECRET: ${{ secrets.KC_ADMIN_CLIENT_SECRET }}
+        run: node scripts/realm/drift.mjs --env production

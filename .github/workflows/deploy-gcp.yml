@@ -104,6 +104,23 @@ jobs:
           echo "Custom themes copied successfully"
           ls -la "$DIST_DIR/themes/"
 
+      - name: Set up Java 21 for the CivicOS extension
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build CivicOS sign-in policy extension (with unit tests) and the password blocklist
+        run: |
+          DIST_DIR="${{ env.DIST_DIR }}"
+          (cd extension && mvn -B -q package)
+          mkdir -p "$DIST_DIR/providers" "$DIST_DIR/data/password-blacklists"
+          cp extension/target/civicos-signin-policy.jar "$DIST_DIR/providers/"
+          cp realm/civicos-password-blocklist.txt "$DIST_DIR/data/password-blacklists/"
+          # Installing the JAR changes nothing by itself: the realm only uses it once
+          # scripts/realm/apply.mjs --env production has been run (see docs/HOW-IT-WORKS.md).
+
       - name: Create keycloak.conf from template
         run: |
           mkdir -p "${{ env.DIST_DIR }}/conf"
@@ -115,7 +132,8 @@ jobs:
             DB_URL="jdbc:postgresql://localhost:5432/${{ vars.KEYCLOAK_DB_NAME }}?cloudSqlInstance=${{ vars.GCP_PROJECT_ID }}:${{ vars.DB_REGION }}:${{ vars.DB_INSTANCE_NAME }}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
           fi
           
-          # Substitute template variables
+          # Substitute template variables. IDP_DOMAIN is not in the template while Keycloak
+          # answers on both hostnames (no fixed hostname until step F1); the line is kept for then.
           sed -e "s|{{ IDP_DOMAIN }}|${{ vars.IDP_DOMAIN }}|g" \
               -e "s|{{ KEYCLOAK_ADMIN }}|${{ vars.KEYCLOAK_ADMIN }}|g" \
               -e "s|{{ KEYCLOAK_ADMIN_PASSWORD }}|${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}|g" \
@@ -279,16 +297,22 @@ jobs:
           # Create tarball with only Keycloak files
           echo "Creating tarball..."
           if [ "$DIST_DIR" = "/tmp" ]; then
-            # Only include Keycloak directories and files
+            # Only include Keycloak directories and files. data/password-blacklists holds the
+            # blocklist the realm's password policy names: without it apply.mjs cannot update
+            # the realm settings (500 "Password blacklist ... not found").
             cd "$DIST_DIR"
             tar czf "$TARBALL" \
-              bin conf lib providers themes \
+              bin conf lib providers themes data/password-blacklists \
               *.jar *.properties LICENSE.txt README.md 2>/dev/null || \
-            tar czf "$TARBALL" bin conf lib providers themes 2>/dev/null
+            tar czf "$TARBALL" bin conf lib providers themes data/password-blacklists 2>/dev/null
           else
             # Include everything from the distribution directory
             cd "$DIST_DIR"
             tar czf "$TARBALL" .
+          fi
+          if ! tar tzf "$TARBALL" | grep -q 'data/password-blacklists/civicos-password-blocklist.txt$'; then
+            echo "::error::the tarball has no data/password-blacklists/civicos-password-blocklist.txt"
+            exit 1
           fi
           
           # Show tarball size
@@ -299,7 +323,7 @@ jobs:
           echo "Copying tarball to VM..."
           scp "$TARBALL" kc:/tmp/keycloak-dist.tar.gz
 
-          # Extract on VM. Wipe themes/ first — tar extract merges and would leave
+          # Extract on VM. Wipe themes/ first, tar extract merges and would leave
           # stale files (e.g. a leftover LEOS styles.css under themes/ocn/) that
           # shadow the files we ship.
           echo "Extracting on VM..."

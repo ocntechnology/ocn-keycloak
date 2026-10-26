@@ -1,0 +1,22 @@
+{
+  "about": "Personal (free-mail) email domains that can never be a CivicOS account email. The one source: @civicos/auth reads it, and ocn-keycloak-identity keeps a byte-identical copy (scripts/check-personal-domains.mjs compares them). Domains are exact matches; patterns are anchored regular expressions over the whole domain.",
+  "domains": [
+    "gmail.com", "googlemail.com",
+    "outlook.com", "outlook.co.uk", "hotmail.com", "hotmail.co.uk", "live.com", "live.co.uk", "msn.com", "passport.com", "windowslive.com",
+    "icloud.com", "me.com", "mac.com",
+    "yahoo.com", "yahoo.co.uk", "ymail.com", "rocketmail.com",
+    "aol.com", "aol.co.uk", "aim.com", "verizon.net", "att.net", "comcast.net", "sbcglobal.net",
+    "protonmail.com", "protonmail.ch", "proton.me", "pm.me", "tutanota.com", "tutanota.de", "tuta.io", "tuta.com",
+    "gmx.com", "gmx.co.uk", "gmx.de", "gmx.net", "gmx.at", "gmx.ch", "web.de", "t-online.de", "freenet.de",
+    "mail.com", "email.com", "usa.com", "post.com", "inbox.com", "hushmail.com", "mailfence.com", "posteo.de", "posteo.net",
+    "zoho.com", "zohomail.com", "zohomail.eu", "fastmail.com", "fastmail.fm", "hey.com", "duck.com", "skiff.com", "runbox.com", "startmail.com", "mailbox.org",
+    "yandex.com", "yandex.ru", "ya.ru", "mail.ru", "inbox.ru", "list.ru", "bk.ru", "rambler.ru",
+    "qq.com", "163.com", "126.com", "yeah.net", "sina.com", "sohu.com", "aliyun.com", "foxmail.com", "naver.com", "daum.net", "hanmail.net",
+    "rediffmail.com", "libero.it", "virgilio.it", "tiscali.it", "orange.fr", "wanadoo.fr", "free.fr", "laposte.net", "sfr.fr", "seznam.cz", "wp.pl", "o2.pl", "onet.pl", "interia.pl",
+    "btinternet.com", "btopenworld.com", "bt.com", "sky.com", "talktalk.net", "talk21.com", "virginmedia.com", "virgin.net", "ntlworld.com", "blueyonder.co.uk", "tiscali.co.uk", "plus.net", "plusnet.com", "o2.co.uk", "orange.net", "ee.co.uk", "freeserve.co.uk", "lineone.net", "postmaster.co.uk", "uwclub.net", "eclipse.co.uk",
+    "bigpond.com", "optusnet.com.au", "shaw.ca", "rogers.com", "sympatico.ca"
+  ],
+  "patterns": [
+    "^(yahoo|ymail|rocketmail|hotmail|outlook|live|windowslive|gmx|aol|yandex|protonmail|zoho)\\.[a-z.]+$"
+  ]
+}

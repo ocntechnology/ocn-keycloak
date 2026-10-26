@@ -104,6 +104,10 @@ quarkus/data/*.db
 .kc
 
 # Raw/unsanitised realm exports (contain users, keys, secrets). Only the
-# sanitised realm/ocn-realm.json is committed — see docs/realm-management.md
+# sanitised realm/ocn-realm.json is committed, see docs/realm-management.md
 *-realm-export*.json
 ocn-realm-export.raw.json
+
+# Local platform state written by scripts/local-up.sh (secrets, logs, status)
+local/*
+!local/README.md

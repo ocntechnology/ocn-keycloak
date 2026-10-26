@@ -1,0 +1,256 @@
+{
+  "$comment": "Local-only seed: organisations (until the council registry sync has run), test users and the fake council IdP. Never applied to production.",
+  "password": "CivicOS-Local-2026!",
+  "organisations": [
+    {
+      "alias": "ocn",
+      "name": "OCN Technology",
+      "domains": [
+        "ocn.technology"
+      ],
+      "attributes": {
+        "kind": [
+          "organisation"
+        ],
+        "customer": [
+          "true"
+        ],
+        "signInPolicy": [
+          "open"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ]
+      }
+    },
+    {
+      "alias": "tower-hamlets",
+      "name": "London Borough of Tower Hamlets",
+      "domains": [
+        "towerhamlets.gov.uk"
+      ],
+      "attributes": {
+        "kind": [
+          "council"
+        ],
+        "customer": [
+          "true"
+        ],
+        "signInPolicy": [
+          "open"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ]
+      }
+    },
+    {
+      "alias": "hackney",
+      "name": "London Borough of Hackney",
+      "domains": [
+        "hackney.gov.uk"
+      ],
+      "attributes": {
+        "kind": [
+          "council"
+        ],
+        "customer": [
+          "false"
+        ],
+        "signInPolicy": [
+          "open"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ]
+      }
+    },
+    {
+      "alias": "kingston",
+      "name": "Royal Borough of Kingston upon Thames",
+      "domains": [
+        "kingston.gov.uk"
+      ],
+      "attributes": {
+        "kind": [
+          "council"
+        ],
+        "customer": [
+          "true"
+        ],
+        "signInPolicy": [
+          "sso_available"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ]
+      }
+    },
+    {
+      "alias": "richmond",
+      "name": "London Borough of Richmond upon Thames",
+      "domains": [
+        "richmond.gov.uk"
+      ],
+      "attributes": {
+        "kind": [
+          "council"
+        ],
+        "customer": [
+          "false"
+        ],
+        "signInPolicy": [
+          "open"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ],
+        "sharedDomains": [
+          "richmondandwandsworth.gov.uk"
+        ]
+      }
+    },
+    {
+      "alias": "wandsworth",
+      "name": "London Borough of Wandsworth",
+      "domains": [
+        "wandsworth.gov.uk"
+      ],
+      "attributes": {
+        "kind": [
+          "council"
+        ],
+        "customer": [
+          "false"
+        ],
+        "signInPolicy": [
+          "open"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ],
+        "sharedDomains": [
+          "richmondandwandsworth.gov.uk"
+        ]
+      }
+    },
+    {
+      "alias": "lga",
+      "name": "Local Government Association",
+      "domains": [
+        "local.gov.uk"
+      ],
+      "attributes": {
+        "kind": [
+          "organisation"
+        ],
+        "customer": [
+          "false"
+        ],
+        "signInPolicy": [
+          "open"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ]
+      }
+    },
+    {
+      "alias": "london-councils",
+      "name": "London Councils",
+      "domains": [
+        "londoncouncils.gov.uk"
+      ],
+      "attributes": {
+        "kind": [
+          "organisation"
+        ],
+        "customer": [
+          "false"
+        ],
+        "signInPolicy": [
+          "open"
+        ],
+        "requireSecondFactor": [
+          "false"
+        ]
+      }
+    }
+  ],
+  "users": [
+    {
+      "email": "toby.abel@ocn.technology",
+      "firstName": "Toby",
+      "lastName": "Abel",
+      "org": "ocn",
+      "realmRoles": [
+        "ocn-admin"
+      ],
+      "totp": true
+    },
+    {
+      "email": "matthew.mannion@towerhamlets.gov.uk",
+      "firstName": "Matthew",
+      "lastName": "Mannion",
+      "org": "tower-hamlets"
+    },
+    {
+      "email": "tracey.anderson@hackney.gov.uk",
+      "firstName": "Tracey",
+      "lastName": "Anderson",
+      "org": "hackney"
+    },
+    {
+      "email": "officer@kingston.gov.uk",
+      "firstName": "Kim",
+      "lastName": "Officer",
+      "org": "kingston"
+    },
+    {
+      "email": "officer@richmondandwandsworth.gov.uk",
+      "firstName": "Riley",
+      "lastName": "Officer",
+      "org": null
+    },
+    {
+      "email": "someone@local.gov.uk",
+      "firstName": "Sam",
+      "lastName": "Someone",
+      "org": "lga"
+    }
+  ],
+  "councilSim": {
+    "realm": "council-sim",
+    "displayName": "Kingston Council (simulated Microsoft 365)",
+    "org": "kingston",
+    "idpAlias": "kingston-sso",
+    "idpDisplayName": "Kingston Council SSO",
+    "clientId": "ocn-broker",
+    "users": [
+      {
+        "username": "officer",
+        "email": "officer@kingston.gov.uk",
+        "firstName": "Kim",
+        "lastName": "Officer"
+      },
+      {
+        "username": "newstarter",
+        "email": "new.starter@kingston.gov.uk",
+        "firstName": "Nia",
+        "lastName": "Starter"
+      },
+      {
+        "username": "intruder",
+        "email": "someone@hackney.gov.uk",
+        "firstName": "Wrong",
+        "lastName": "Tenant"
+      }
+    ],
+    "frontendUrl": "http://sso.kingston.localhost:8180"
+  },
+  "staffTotp": {
+    "$comment": "Local only. OCN staff must use an authenticator app; this known secret lets tests and agents sign in as staff properly (password or email code, then the six-digit code from scripts/local/totp.mjs). Never used outside local.",
+    "secret": "CivicOS-Local-Staff-TOTP-2026",
+    "label": "CivicOS local test authenticator"
+  }
+}

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# add-civicos-committee-client.sh — idempotently create/update the
+# add-civicos-committee-client.sh: idempotently create/update the
 # `civicos-committee` OIDC client on the live `ocn` realm.
 #
 # Why a script instead of realm import: Keycloak's `--import-realm` only creates a
 # realm on first boot; it will NOT update a realm that already exists. `ocn` already
 # exists in production, so declarative client changes are applied with kcadm instead.
-# Running this repeatedly is safe — it updates in place if the client is already there.
+# Running this repeatedly is safe, it updates in place if the client is already there.
 #
 # Usage (on the Keycloak VM, or anywhere kcadm can reach the server):
 #   KC_ADMIN=admin KC_ADMIN_PASSWORD=... ./scripts/add-civicos-committee-client.sh
@@ -18,7 +18,7 @@
 #   KC_ADMIN_PASSWORD  if unset, kcadm prompts interactively
 #   KCADM              default /opt/keycloak/bin/kcadm.sh
 #
-# On success it prints the client secret — copy it into Committees'
+# On success it prints the client secret, copy it into Committees'
 # AUTH_KEYCLOAK_SECRET (Auth.js) env var. The secret is NEVER committed; the
 # realm/ocn-realm.json snapshot only holds a ${CIVICOS_COMMITTEE_CLIENT_SECRET}
 # placeholder.
@@ -49,7 +49,7 @@ REP=$(cat <<'JSON'
 {
   "clientId": "civicos-committee",
   "name": "CivicOS Committees",
-  "description": "CivicOS Committees (Next.js + Auth.js) — decisions, calendar, sittings.",
+  "description": "CivicOS Committees (Next.js + Auth.js): decisions, calendar, sittings.",
   "protocol": "openid-connect",
   "enabled": true,
   "publicClient": false,

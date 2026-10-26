@@ -8,7 +8,7 @@ of client/role changes.
 - Snapshot: [`../realm/ocn-realm.json`](../realm/ocn-realm.json)
 - Portal client bootstrap: [`../scripts/add-civicos-portal-client.sh`](../scripts/add-civicos-portal-client.sh)
 
-> **Important — this snapshot is not auto-applied.** Keycloak's `--import-realm`
+> **Important: this snapshot is not auto-applied.** Keycloak's `--import-realm`
 > only *creates* a realm on first boot; it will **not** update a realm that already
 > exists. `ocn` already exists in production, so changes are applied to the live
 > realm with `kcadm` (see below), and the snapshot is refreshed afterwards to match.
@@ -16,7 +16,7 @@ of client/role changes.
 ## What is (and isn't) in the snapshot
 
 The committed `ocn-realm.json` is a `partial-export` (clients + roles + groups +
-realm settings). It is **sanitised** — the following are stripped or replaced with
+realm settings). It is **sanitised**, the following are stripped or replaced with
 `${PLACEHOLDER}` values and must never be committed in cleartext:
 
 | Removed / placeholdered | Why |
@@ -27,12 +27,12 @@ realm settings). It is **sanitised** — the following are stripped or replaced 
 | `smtpServer.password` | secret material |
 | `saml.signing.private.key` / `saml.encryption.private.key` | secret material |
 
-Public certificates (e.g. `saml.signing.certificate`) are kept — they are not secret.
+Public certificates (e.g. `saml.signing.certificate`) are kept, they are not secret.
 
 ## Re-exporting the realm (read-only, no downtime)
 
 Run on the Keycloak VM. `partial-export` hits the admin REST API and needs **no
-restart** — do **not** use `kc.sh export`, which boots a second instance against the
+restart**, do **not** use `kc.sh export`, which boots a second instance against the
 production database.
 
 ```bash
@@ -83,18 +83,21 @@ Verify before committing: `jq '.users|length' realm/ocn-realm.json` → `0`, and
 KC_ADMIN=admin KC_ADMIN_PASSWORD=... ./scripts/add-civicos-portal-client.sh
 ```
 
-Idempotent — creates `civicos-portal` if absent, updates it in place otherwise. It
+Idempotent, creates `civicos-portal` if absent, updates it in place otherwise. It
 prints the generated client secret; put that in the portal's `AUTH_KEYCLOAK_SECRET`.
 After applying, re-export + re-sanitise so the snapshot reflects reality.
 
 ## Cleanup / hardening backlog (observed in the current realm)
 
-- `bruteForceProtected: false` — no brute-force lockout on the realm.
+- `bruteForceProtected: false`: no brute-force lockout on the realm.
 - `ocn-constitution-admin` has a sprawling redirect-URI list (mixes cms / cms2 /
-  constitution hosts + several localhost ports + loose bare-origin entries) — tighten.
+  constitution hosts + several localhost ports + loose bare-origin entries), implicit flow and
+  password grants: tightened by `node scripts/realm/legacy-clients.mjs --constitution-admin`
+  (exact values in `realm/config/legacy-clients.json`; `--dry-run` first; see
+  `docs/cut-over-runbook.md`). `--cms-localhost` removes `http://localhost:3002` from `cms`.
 - Stale `cms2.opencouncil.network` / `cms.opencouncil.network` redirect and post-logout
   URIs linger on `cms`; the CMS lives at `cms.ocn.technology` (the old host is a dead
   load balancer). `cms-admin` still has the old host as its root/base URL.
 - Group name typo: `Tower Hamets` (alongside `Tower Hamlets Admins`/`Editors`).
 - Realm login theme is `keycloak.v2`; the repo's custom `leos-theme` is not the
-  active realm login theme — reconcile.
+  active realm login theme: reconcile.

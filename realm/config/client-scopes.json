@@ -1,0 +1,22 @@
+[
+  {
+    "name": "organization",
+    "description": "The person's CivicOS organisation (Keycloak Organizations membership).",
+    "protocol": "openid-connect",
+    "attributes": { "include.in.token.scope": "true", "display.on.consent.screen": "false" },
+    "protocolMappers": [
+      {
+        "name": "organization",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-organization-membership-mapper",
+        "config": { "id.token.claim": "true", "access.token.claim": "true", "introspection.token.claim": "true", "userinfo.token.claim": "true", "claim.name": "organization", "jsonType.label": "String", "multivalued": "true", "addOrganizationAttributes": "false", "addOrganizationId": "false" }
+      },
+      {
+        "name": "civicos sign-in method",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usersessionmodel-note-mapper",
+        "config": { "user.session.note": "civicos.method", "claim.name": "civicos_method", "jsonType.label": "String", "id.token.claim": "true", "access.token.claim": "true", "introspection.token.claim": "true", "userinfo.token.claim": "false" }
+      }
+    ]
+  }
+]
