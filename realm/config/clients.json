@@ -8,7 +8,9 @@
       "backchannelUrl": "{{portalBackchannelUrl}}",
       "erasure": false,
       "$extraRedirectUris": "OCN Docs in DOCS_ADMIN_MODE=legacy signs its admin in through civicos-portal (civicos-docs render.yaml). Keep this until Docs runs DOCS_ADMIN_MODE=civicos on client ocn-docs, then remove it.",
-      "extraRedirectUris": ["{{docsUrl}}/api/auth/callback/keycloak"]
+      "extraRedirectUris": [
+        "{{docsUrl}}/api/auth/callback/keycloak"
+      ]
     },
     {
       "clientId": "ocn-docs",
@@ -106,6 +108,24 @@
       "attributes": {
         "civicos.erasure.url": "{{directoryBackchannelUrl}}/api/auth/civicos/erase",
         "backchannel.logout.url": ""
+      }
+    },
+    {
+      "clientId": "civicos-realm-admin",
+      "name": "CivicOS realm admin",
+      "description": "Service account for scripts/realm/apply.mjs and drift.mjs (KC_ADMIN_CLIENT_ID / KC_ADMIN_CLIENT_SECRET), so neither needs the master admin password or a password grant.",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "serviceAccountRealmRoles": [],
+      "serviceAccountClientRoles": {
+        "realm-management": [
+          "realm-admin"
+        ]
       }
     }
   ],

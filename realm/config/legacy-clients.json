@@ -3,12 +3,13 @@
   "changes": {
     "constitution-admin": {
       "clientId": "ocn-constitution-admin",
-      "why": "Public constitution site admin sign-in (ocn-constitution auth_service.py): code + PKCE + userinfo only. Turn off implicit flow and password grants, list the admin callbacks exactly, drop the cms.opencouncil.network and cms2 entries. The site builds the callback from the host the request arrived on (only its platform hosts, src/config/dns.py), and its Render service has two custom domains: constitution.opencouncil.network and constitution.ocn.technology. Tower Hamlets is the only council (/api/councils, 26 October 2026): add a council's two callbacks here before it gets an admin.",
+      "why": "Public constitution site admin sign-in (ocn-constitution auth_service.py): code + PKCE + userinfo only. Turn off implicit flow, password grants and service accounts (the site never uses client credentials), list the admin callbacks exactly, drop the cms.opencouncil.network and cms2 entries. The site builds the callback from the host the request arrived on (only its platform hosts, src/config/dns.py), and its Render service has two custom domains: constitution.opencouncil.network and constitution.ocn.technology. Tower Hamlets is the only council (/api/councils, 26 October 2026): add a council's two callbacks here before it gets an admin.",
       "set": {
         "publicClient": false,
         "standardFlowEnabled": true,
         "implicitFlowEnabled": false,
         "directAccessGrantsEnabled": false,
+        "serviceAccountsEnabled": false,
         "redirectUris": [
           "https://constitution.opencouncil.network/tower-hamlets/admin/callback",
           "https://constitution.ocn.technology/tower-hamlets/admin/callback"

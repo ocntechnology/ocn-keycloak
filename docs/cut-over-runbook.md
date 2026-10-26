@@ -34,9 +34,12 @@ Every production step needs Toby's go-ahead.
    an ERROR `CivicOS SMTP check FAILED` means codes and reset links will not be sent. The later
    move to OCN's account (`eu-west-2`, `no-reply@ocn.technology`) needs new SMTP credentials
    created in that region, set as `SMTP_USER` / `SMTP_PASSWORD` for that apply.
-2. **Admin service account** for `apply.mjs` and `drift.mjs` in realm `ocn` (client credentials,
-   realm-management roles as `civicos-registry-sync` has). Store as `KC_ADMIN_CLIENT_ID` /
-   `KC_ADMIN_CLIENT_SECRET` secrets. Do not use password grants (they are refused in realm `ocn`
+2. **Admin service account** for `apply.mjs` and `drift.mjs`: client `civicos-realm-admin` in
+   `clients.json` (client credentials, realm-management `realm-admin`). The first production apply
+   runs with the master admin (`KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD`), creates it and, with
+   `--secrets-out`, writes `CIVICOS_REALM_ADMIN_CLIENT_SECRET`; store that as
+   `KC_ADMIN_CLIENT_SECRET` (and `KC_ADMIN_CLIENT_ID=civicos-realm-admin`, `KC_SERVER`) on
+   ocn-keycloak for the nightly drift job and later applies. Do not use password grants (they are refused in realm `ocn`
    once the realm config is applied).
 3. **DNS and TLS** for `auth.ocn.technology` pointing at the same Keycloak as
    `idp.opencouncil.network` (the Google Cloud HTTPS load balancer in front of the `keycloak` VM).
@@ -117,7 +120,7 @@ Every production step needs Toby's go-ahead.
      `https://constitution.opencouncil.network/tower-hamlets/admin/callback` and
      `https://constitution.ocn.technology/tower-hamlets/admin/callback` (the site's two Render
      custom domains; Tower Hamlets is its only council), web origins and post-logout redirects
-     to match. Service accounts, scopes and the secret are left as they are. A new council's
+     to match. Service accounts are turned off (the site never uses client credentials); scopes and the secret are left as they are. A new council's
      admin needs its two callbacks added to the file first.
    - `--cms-localhost`: removes `http://localhost:3002/*` (redirect), `http://localhost:3002`
      (web origin and post-logout redirect) from `cms`; the rest stays.
