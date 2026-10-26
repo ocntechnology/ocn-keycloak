@@ -20,10 +20,20 @@ Every production step needs Toby's go-ahead.
 
 ## Before the day
 
-1. **SMTP.** Verify `no-reply@ocn.technology` in SES (eu-west-1) and create SMTP credentials.
-   Put them in the deploy secrets as `SMTP_USER` / `SMTP_PASSWORD`. After the deploy, the
-   Keycloak log must show `CivicOS SMTP check: realm ocn can reach email-smtp... and log in`;
-   an ERROR `CivicOS SMTP check FAILED` means codes and reset links will not be sent.
+1. **SMTP (interim: the existing SES account).** Until AWS grants SES production access in
+   OCN's own account, mail keeps going through the SES account the live realm uses today:
+   `email-smtp.eu-west-1.amazonaws.com`, implicit TLS on 465 (`ssl` true, `starttls` false), from
+   `admin@opencouncil.network` (verified in that account; `ocn.technology` may not be), shown as
+   "CivicOS". **Run the interim apply WITHOUT `SMTP_USER` / `SMTP_PASSWORD`** (unset or empty):
+   `apply.mjs` then keeps the user and password the live realm
+   already stores (it sends back the live user and the masked password, which Keycloak reads as
+   "keep the stored one"; checked on Keycloak 26.4 by sending through a probe server) and logs
+   `SMTP user and password: not set for this apply, keeping the live realm's`. Setting them
+   replaces the live credentials. After the deploy, the Keycloak log must show
+   `CivicOS SMTP check: realm ocn can reach email-smtp.eu-west-1.amazonaws.com:465 and log in`;
+   an ERROR `CivicOS SMTP check FAILED` means codes and reset links will not be sent. The later
+   move to OCN's account (`eu-west-2`, `no-reply@ocn.technology`) needs new SMTP credentials
+   created in that region, set as `SMTP_USER` / `SMTP_PASSWORD` for that apply.
 2. **Admin service account** for `apply.mjs` and `drift.mjs` in realm `ocn` (client credentials,
    realm-management roles as `civicos-registry-sync` has). Store as `KC_ADMIN_CLIENT_ID` /
    `KC_ADMIN_CLIENT_SECRET` secrets. Do not use password grants (they are refused in realm `ocn`

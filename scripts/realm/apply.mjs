@@ -12,6 +12,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   Admin, CONFIG, parseArgs, loadDesired, readJson, desiredFlowRows, liveFlowRows, flowProviders,
+  mergeSmtpCredentials,
 } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -226,6 +227,11 @@ async function applySettings(appliedFlows) {
       console.warn(`${key}: ${flow} not available, keeping ${live[key] || fallback}`);
       want[key] = live[key] || fallback;
     }
+  }
+  if (want.smtpServer) {
+    const { smtp, kept } = mergeSmtpCredentials(want.smtpServer, live.smtpServer);
+    want.smtpServer = smtp;
+    if (kept.length) log(`SMTP ${kept.join(' and ')}: not set for this apply, keeping the live realm's`);
   }
   // An empty frontendUrl is sent as '' on purpose: it overwrites (clears) a value set earlier, so
   // the issuer follows the host each request arrived on (the two-hostname transition). Leaving the

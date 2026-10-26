@@ -56,6 +56,28 @@ export function expandProcessEnv(value) {
   return value;
 }
 
+/** SMTP user and password come from SMTP_USER / SMTP_PASSWORD at apply time. When either is not
+ * set (its ${...} placeholder is left unexpanded, or it is empty), the live realm's stored value is
+ * kept: the user as it is, the password as the admin API returned it (masked "**********", which
+ * Keycloak reads as "keep the stored password", or a vault reference). So an apply without them
+ * never blanks the live credentials or overwrites them with a placeholder. With auth on and no
+ * credentials anywhere it refuses, rather than leave a realm that cannot send email codes. */
+export function mergeSmtpCredentials(want, live) {
+  if (!want || typeof want !== 'object') return { smtp: want, kept: [] };
+  const out = { ...want };
+  const kept = [];
+  for (const k of ['user', 'password']) {
+    const v = out[k];
+    const unset = v === undefined || v === null || String(v).trim() === '' || /\$\{[A-Z0-9_]+\}/.test(String(v));
+    if (!unset) continue;
+    if (live?.[k]) { out[k] = live[k]; kept.push(k); } else delete out[k];
+  }
+  if (String(out.auth) === 'true' && (!out.user || !out.password)) {
+    throw new Error('SMTP auth is on but there is no SMTP user and password: set SMTP_USER and SMTP_PASSWORD, or apply to a realm that already stores them');
+  }
+  return { smtp: out, kept };
+}
+
 export function loadDesired(env) {
   const envFile = join(CONFIG, 'env', `${env}.json`);
   if (!existsSync(envFile)) throw new Error(`no env file ${envFile}`);
