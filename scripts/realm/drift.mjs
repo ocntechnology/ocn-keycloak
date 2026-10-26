@@ -7,7 +7,8 @@
 // Also checks the platform rule for every OIDC client in the realm, not just ours: no direct
 // access grants, PKCE S256, and no wildcard redirect URIs.
 
-import { Admin, parseArgs, loadDesired, desiredFlowRows, liveFlowRows, diffObject } from './lib.mjs';
+import { join } from 'node:path';
+import { Admin, parseArgs, loadDesired, desiredFlowRows, liveFlowRows, diffObject, readJson, CONFIG } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const desired = loadDesired(args.env);
@@ -18,6 +19,8 @@ const add = (area, text) => diffs.push({ area, text });
 const SETTINGS_IGNORE = new Set(['smtpServer', 'userProfileAttributes']);
 // Keycloak's own clients, apart from admin-cli: it is public, so it must not allow password grants either.
 const BUILT_IN_CLIENTS = new Set(['account', 'account-console', 'broker', 'realm-management', 'security-admin-console']);
+// Accepted wildcard redirects on legacy clients, listed exactly (realm/config/drift-exceptions.json says why).
+const WILDCARD_OK = readJson(join(CONFIG, 'drift-exceptions.json')).wildcardRedirects;
 
 async function main() {
   const live = await kc.get('');
@@ -64,7 +67,9 @@ async function main() {
     if (c.protocol !== 'openid-connect' || BUILT_IN_CLIENTS.has(c.clientId) || c.bearerOnly) continue;
     if (c.directAccessGrantsEnabled) add('client rules', `${c.clientId}: direct access grants are on`);
     if (c.standardFlowEnabled && c.attributes?.['pkce.code.challenge.method'] !== 'S256') add('client rules', `${c.clientId}: PKCE S256 is not required`);
-    for (const u of c.redirectUris || []) if (u.includes('*')) add('client rules', `${c.clientId}: wildcard redirect URI ${u}`);
+    for (const u of c.redirectUris || []) {
+      if (u.includes('*') && !WILDCARD_OK[c.clientId]?.uris.includes(u)) add('client rules', `${c.clientId}: wildcard redirect URI ${u}`);
+    }
     if (c.implicitFlowEnabled) add('client rules', `${c.clientId}: implicit flow is on`);
   }
 

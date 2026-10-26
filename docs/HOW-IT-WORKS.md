@@ -110,6 +110,7 @@ Sign-in settings) lives in the `civicos` monorepo: see its `docs/identity.md`.
 | `realm/ocn-realm.json` | The older sanitised production export, used only to create the local realm the first time |
 | `scripts/realm/apply.mjs` | Apply `realm/config` to a Keycloak through the admin API (idempotent) |
 | `scripts/realm/drift.mjs` | Compare a live realm with `realm/config` and check every client's rules; exit 2 on differences |
+| `realm/config/drift-exceptions.json` | Exact wildcard redirects accepted on the legacy `cms` and `cms-admin` clients, with why; anything else still fails |
 | `scripts/sso/connect-council.mjs` | Connect a council's Microsoft 365, Google Workspace or OIDC sign-in to its organisation |
 | `scripts/erasure/resend.mjs` | Send an account-erasure notice again |
 | `scripts/local/totp.mjs` | The local staff test authenticator's current code (`--base32` for an app) |

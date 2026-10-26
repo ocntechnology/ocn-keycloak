@@ -1,0 +1,13 @@
+{
+  "_comment": "Accepted breaches of the platform client rules that drift.mjs checks (scripts/realm/drift.mjs). Only clients this repo does not manage belong here. Each entry is exact: anything not listed, including localhost or http redirects, still fails. Remove an entry when its client is tightened or retired.",
+  "wildcardRedirects": {
+    "cms": {
+      "uris": ["https://cms.ocn.technology/*", "https://cms2.opencouncil.network/*"],
+      "why": "Constitution editor (public client, keycloak-js returns to the page the person was on). Whole-origin wildcards on OCN's own HTTPS hosts; tighten when the editor moves to a fixed callback."
+    },
+    "cms-admin": {
+      "uris": ["https://cms.opencouncil.network/*"],
+      "why": "Legacy editor admin client on OCN's own HTTPS host. Retire it once nothing signs in through it."
+    }
+  }
+}
