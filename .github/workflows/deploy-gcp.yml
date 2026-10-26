@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    # Realm config, scripts, docs and tests do not change what runs on the VM: no restart for them.
+    paths-ignore:
+      - 'realm/config/**'
+      - 'scripts/realm/**'
+      - 'tests/**'
+      - '**/*.md'
+      - '.github/workflows/realm-drift.yml'
   workflow_dispatch:
     inputs:
       gcp_vm_name:

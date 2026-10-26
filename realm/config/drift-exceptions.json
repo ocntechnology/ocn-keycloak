@@ -6,7 +6,7 @@
       "why": "Constitution editor (public client, keycloak-js returns to the page the person was on). Whole-origin wildcards on OCN's own HTTPS hosts; tighten when the editor moves to a fixed callback."
     },
     "cms-admin": {
-      "uris": ["https://cms.opencouncil.network/*"],
+      "uris": ["https://cms.opencouncil.network/*", "https://cms.ocn.technology/*"],
       "why": "Legacy editor admin client on OCN's own HTTPS host. Retire it once nothing signs in through it."
     }
   }
