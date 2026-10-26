@@ -1,5 +1,5 @@
 {
-  "_comment": "Accepted breaches of the platform client rules that drift.mjs checks (scripts/realm/drift.mjs). Only clients this repo does not manage belong here. Each entry is exact: anything not listed, including localhost or http redirects, still fails. Remove an entry when its client is tightened or retired.",
+  "_comment": "Accepted breaches of the platform client rules that drift.mjs checks (scripts/realm/drift.mjs). Only clients this repo does not manage belong here. Each entry is exact: anything not listed, including localhost or http redirects, still fails. Remove an entry when its client is tightened or retired (ocntechnology/ocn-keycloak#7).",
   "wildcardRedirects": {
     "cms": {
       "uris": ["https://cms.ocn.technology/*", "https://cms2.opencouncil.network/*"],
