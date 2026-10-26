@@ -115,7 +115,7 @@ Sign-in settings) lives in the `civicos` monorepo: see its `docs/identity.md`.
 | `scripts/erasure/resend.mjs` | Send an account-erasure notice again |
 | `scripts/local/totp.mjs` | The local staff test authenticator's current code (`--base32` for an app) |
 | `scripts/local-up.sh`, `scripts/local-down.sh` | Start and stop Mailpit and Keycloak locally |
-| `extension/` | The Keycloak extension (Java 21, Maven): `CivicosSignInAuthenticator`, `CivicosResetAuthenticator`, `BrokerGuardAuthenticator`, `SsoCompleteAuthenticator`, `SessionRulesExecutor`, `CodeLimits`, `ErasureEventListener` and `ErasureOutbox` (JPA entity and Liquibase changelog), `ErasureResource`, `SupportResource`, `SmtpCheck` |
+| `extension/` | The Keycloak extension (Maven, compiled with `--release 17`: the production VM runs OpenJDK 17, and `deploy-gcp.yml` fails the build on any newer class file): `CivicosSignInAuthenticator`, `CivicosResetAuthenticator`, `BrokerGuardAuthenticator`, `SsoCompleteAuthenticator`, `SessionRulesExecutor`, `CodeLimits`, `ErasureEventListener` and `ErasureOutbox` (JPA entity and Liquibase changelog), `ErasureResource`, `SupportResource`, `SmtpCheck` |
 | `scripts/check-personal-domains.mjs` | Compare the personal-domain list with the civicos copy |
 | `docs/cut-over-runbook.md` | Moving production to auth.ocn.technology |
 | `.github/workflows/realm-drift.yml` | Nightly `drift.mjs` against production (needs secrets; see the runbook) |
@@ -132,7 +132,7 @@ scripts/local-down.sh            # stop Keycloak and Mailpit (data stays in Post
 ```
 
 It uses Keycloak from `~/Repositories/ocn-keycloak/keycloak-dev` (`KC_HOME`), Java 21 from
-Homebrew, and writes `~/Repositories/ocn-keycloak/local/` (`LOCAL_DIR`): `STATUS.md` (URLs,
+Homebrew (the extension still compiles to Java 17 bytecode), and writes `~/Repositories/ocn-keycloak/local/` (`LOCAL_DIR`): `STATUS.md` (URLs,
 clients, users), `clients.env` (client secrets, never committed) and `keycloak.log`. The admin
 console is http://localhost:8180/admin (admin / admin), Mailpit http://localhost:8025.
 
